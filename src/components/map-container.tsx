@@ -32,6 +32,7 @@ function ParkingFinder() {
   useEffect(() => {
     let watchId: number;
     if (navigator.geolocation) {
+      // Start watching the user's position
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const newPosition = {
@@ -39,17 +40,11 @@ function ParkingFinder() {
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
-
-          if (map) {
-            map.panTo(newPosition);
-            map.setZoom(14);
-          }
         },
         (error) => {
           console.error("Error getting user location:", error);
-           // Don't set a fallback location, let the map default to a wider view
-           // The search will only trigger when userPosition is not null.
-           setLoading(false); 
+          // If location access is denied or fails, stop showing the loader
+          setLoading(false);
         },
         {
           enableHighAccuracy: true,
@@ -58,16 +53,28 @@ function ParkingFinder() {
         }
       );
     } else {
+        // Geolocation is not supported by this browser.
         setLoading(false);
     }
 
+    // Cleanup function to stop watching when the component unmounts
     return () => {
       if (watchId) {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [map]);
+  }, []); // Empty dependency array means this runs only once on mount
 
+  // This effect runs whenever the user's position changes to pan the map
+  useEffect(() => {
+    if (map && userPosition) {
+        map.panTo(userPosition);
+        map.setZoom(14);
+    }
+  }, [map, userPosition]);
+
+
+  // This effect runs whenever the user's position changes to search for nearby parking
   useEffect(() => {
     if (!placesServiceRef.current || !userPosition) return;
 
@@ -82,13 +89,15 @@ function ParkingFinder() {
     setLoading(true);
     placesService.nearbySearch(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const fetchedLots: ParkingLot[] = results.map((place, index) => ({
+        const fetchedLots: ParkingLot[] = results
+        .filter(place => place.geometry && place.geometry.location) // Ensure place has geometry
+        .map((place, index) => ({
           id: place.place_id || `p${index}`,
           name: place.name || 'Unknown Parking',
           address: place.vicinity || 'Address not available',
           position: {
-            lat: place.geometry?.location?.lat() || 0,
-            lng: place.geometry?.location?.lng() || 0,
+            lat: place.geometry!.location!.lat(),
+            lng: place.geometry!.location!.lng(),
           },
           rating: place.rating || 4.0,
           totalSpots: Math.floor(Math.random() * 150) + 50, // Mock data
@@ -106,7 +115,7 @@ function ParkingFinder() {
       }
       setLoading(false);
     });
-  }, [userPosition]);
+  }, [userPosition]); // Rerun search when userPosition changes
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
@@ -127,8 +136,8 @@ function ParkingFinder() {
   );
   
   return (
-    <div className="h-screen w-full flex flex-col md:flex-row">
-      <div className="w-full md:w-3/5 h-2/5 md:h-full">
+    <div className="h-screen w-full flex flex-col">
+        <div className="w-full h-[60%]">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -137,8 +146,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="w-full md:w-2/5 h-3/5 md:h-full">
-           <Card className="flex flex-col h-full rounded-none md:rounded-l-none border-t md:border-t-0 md:border-l">
+        <aside className="w-full h-[40%]">
+           <Card className="flex flex-col h-full rounded-none border-t md:border-t-0">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
