@@ -18,7 +18,7 @@ export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, se
   const center = userPosition || defaultCenter;
 
   return (
-    <div className="h-[60vh] lg:h-full w-full">
+    <div className="w-full h-full">
         <Map
             center={center}
             zoom={userPosition ? 14 : 12}

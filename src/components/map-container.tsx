@@ -81,15 +81,17 @@ export default function MapContainer() {
   return (
     <APIProvider apiKey={apiKey}>
       <div className="flex h-full w-full flex-col">
-          <ParkingMap
-            parkingLots={filteredLots}
-            onSelectLot={handleSelectLot}
-            onOpenBooking={handleOpenBooking}
-            selectedLot={selectedLot}
-            userPosition={userPosition}
-          />
-        <aside className="flex-shrink-0 h-[40vh] lg:h-auto lg:flex-grow flex flex-col">
-           <Card className="flex flex-col h-full rounded-none lg:rounded-lg border-t lg:border-l-0 lg:border-t">
+          <div className="h-[60%] w-full">
+            <ParkingMap
+              parkingLots={filteredLots}
+              onSelectLot={handleSelectLot}
+              onOpenBooking={handleOpenBooking}
+              selectedLot={selectedLot}
+              userPosition={userPosition}
+            />
+          </div>
+        <aside className="h-[40%] flex-shrink-0 flex flex-col">
+           <Card className="flex flex-col h-full rounded-none border-t">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
