@@ -23,6 +23,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
   const [searchPosition, setSearchPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Enter a location or allow location access to find parking.');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('your location');
 
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -39,10 +40,10 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
     }
   }, [map]);
 
+  // Effect for watching user's current location
   useEffect(() => {
     let watchId: number;
     if (navigator.geolocation) {
-      setStatusMessage('Getting your location to find nearby parking...');
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const newPosition = {
@@ -50,44 +51,53 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
-          // Set search position to user's location if no manual search has been performed
-          if (searchTrigger === 0) {
-            setSearchPosition(newPosition);
-          }
         },
         (error) => {
           console.error("Error getting user location:", error);
-          setLoading(false);
-          setStatusMessage('Could not get your location. Please allow location access or search for a location.');
+          if (!searchPosition) { // Only show error if no search has happened
+            setLoading(false);
+            setStatusMessage('Could not get your location. Please allow location access or search for a location.');
+          }
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-       setLoading(false);
-       setStatusMessage('Geolocation is not supported by your browser.');
+       if (!searchPosition) {
+         setLoading(false);
+         setStatusMessage('Geolocation is not supported by your browser.');
+       }
     }
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [searchTrigger]);
+  }, [searchPosition]);
 
+  // Effect for handling search logic
   useEffect(() => {
+    // Manual search by user
     if (searchTrigger > 0 && searchTerm.trim() !== '' && geocoderRef.current) {
       setLoading(true);
+      setCurrentSearchTerm(searchTerm);
       setStatusMessage(`Searching for parking near ${searchTerm}...`);
       geocoderRef.current.geocode({ address: searchTerm }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
           const location = results[0].geometry.location;
-          const newPos = { lat: location.lat(), lng: location.lng() };
-          setSearchPosition(newPos);
+          setSearchPosition({ lat: location.lat(), lng: location.lng() });
         } else {
           console.error(`Geocode was not successful for the following reason: ${status}`);
           setLoading(false);
           setStatusMessage(`Could not find location: ${searchTerm}`);
         }
       });
+    } 
+    // "Nearby" button click or initial load
+    else if ((searchTrigger > 0 && searchTerm.trim() === '') || (searchTrigger === 0 && userPosition)) {
+       setLoading(true);
+       setCurrentSearchTerm('your location');
+       setStatusMessage('Finding nearby parking...');
+       setSearchPosition(userPosition);
     }
-  }, [searchTrigger, searchTerm]);
+  }, [searchTrigger, searchTerm, userPosition]);
   
   useEffect(() => {
     if (map && searchPosition) {
@@ -99,6 +109,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
   useEffect(() => {
     if (!placesServiceRef.current || !searchPosition) return;
 
+    setLoading(true);
     const placesService = placesServiceRef.current;
     const request: google.maps.places.PlaceSearchRequest = {
       location: searchPosition,
@@ -107,7 +118,6 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
       keyword: 'pay parking'
     };
 
-    setLoading(true);
     placesService.nearbySearch(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         const fetchedLots: ParkingLot[] = results
@@ -134,7 +144,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
           setStatusMessage('No paid parking lots found nearby.');
         }
       } else {
-        console.error('Places API search failed:', status);
+        if (status !== 'OK') console.error('Places API search failed:', status);
         setParkingLots([]);
         setStatusMessage('No paid parking lots found nearby.');
       }
@@ -171,7 +181,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
           <ScrollArea className="h-full w-full">
             <div className="p-4">
               <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
-                  {loading ? 'Finding parking...' : `Parking Found Near ${searchTerm || 'You'}`}
+                  {loading ? 'Finding parking...' : `Parking Found Near ${currentSearchTerm}`}
               </h2>
               {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

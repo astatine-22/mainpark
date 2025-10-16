@@ -1,17 +1,21 @@
 import Link from 'next/link';
-import { Car, Search } from 'lucide-react';
+import { Car, Search, LocateFixed } from 'lucide-react';
 import { MainNav } from './main-nav';
 import { UserNav } from './user-nav';
 import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+
 
 interface HeaderProps {
   searchTerm?: string;
   onSearchTermChange?: (term: string) => void;
   onSearchSubmit?: () => void;
+  onNearbyClick?: () => void;
   showSearch?: boolean;
 }
 
-export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit, showSearch }: HeaderProps) {
+export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit, onNearbyClick, showSearch }: HeaderProps) {
   
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -30,7 +34,7 @@ export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit,
         </Link>
         <div className="flex flex-1 items-center justify-center px-4 lg:px-8">
             {showSearch && (
-              <div className="relative w-full max-w-md">
+              <div className="relative w-full max-w-md flex items-center gap-2">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
                       placeholder="Search any city or locality..." 
@@ -39,6 +43,18 @@ export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit,
                       onChange={(e) => onSearchTermChange?.(e.target.value)}
                       onKeyDown={handleKeyDown}
                   />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={onNearbyClick} className="flex-shrink-0">
+                          <LocateFixed className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Find parking near me</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
               </div>
             )}
         </div>

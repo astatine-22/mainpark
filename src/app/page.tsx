@@ -10,6 +10,11 @@ export default function DriverPage() {
   const handleSearchSubmit = () => {
     setSearchTrigger(prev => prev + 1);
   };
+  
+  const handleNearbyClick = () => {
+    setSearchTerm(''); // Clear search term to signal nearby search
+    setSearchTrigger(prev => prev + 1); // Trigger an update
+  };
 
   return (
     <>
@@ -17,6 +22,7 @@ export default function DriverPage() {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onSearchSubmit={handleSearchSubmit}
+        onNearbyClick={handleNearbyClick}
         showSearch={true}
       />
       <div className="h-[calc(100vh-4rem)] w-full">
