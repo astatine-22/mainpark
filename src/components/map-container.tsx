@@ -80,9 +80,9 @@ export default function MapContainer() {
 
   return (
     <APIProvider apiKey={apiKey}>
-       <div className="container mx-auto flex h-[calc(100vh-4rem)] max-w-7xl flex-col gap-4 py-4">
-        <div className="relative h-[60%] w-full rounded-lg overflow-hidden border shadow-md">
-          <ParkingMap
+      <div className="grid h-[calc(100vh-4rem)] w-full grid-cols-1 lg:grid-cols-3">
+        <div className="lg:col-span-2 h-full w-full">
+           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
             onOpenBooking={handleOpenBooking}
@@ -90,35 +90,37 @@ export default function MapContainer() {
             userPosition={userPosition}
           />
         </div>
-        <Card className="flex flex-col h-[40%]">
-          <CardHeader>
-            <CardTitle>Nearby Parking</CardTitle>
-            <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Search parking by name or address..." 
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-          </CardHeader>
-          <CardContent className="flex-grow overflow-hidden">
-            <ScrollArea className="h-full pr-4">
-              <div className="space-y-4">
-                {filteredLots.map((lot) => (
-                  <ParkingListItem
-                    key={lot.id}
-                    lot={lot}
-                    onSelect={() => handleSelectLot(lot)}
-                    onBook={() => handleOpenBooking(lot)}
-                    isSelected={selectedLot?.id === lot.id}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        <aside className="h-full flex flex-col">
+           <Card className="flex flex-col h-full rounded-none lg:rounded-lg border-t lg:border-l lg:border-t-0">
+            <CardHeader>
+                <CardTitle>Nearby Parking</CardTitle>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search parking by name or address..." 
+                        className="pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-hidden">
+                <ScrollArea className="h-full pr-4">
+                <div className="space-y-4">
+                    {filteredLots.map((lot) => (
+                    <ParkingListItem
+                        key={lot.id}
+                        lot={lot}
+                        onSelect={() => handleSelectLot(lot)}
+                        onBook={() => handleOpenBooking(lot)}
+                        isSelected={selectedLot?.id === lot.id}
+                    />
+                    ))}
+                </div>
+                </ScrollArea>
+            </CardContent>
+            </Card>
+        </aside>
       </div>
       {selectedLot && (
         <BookingSheet
