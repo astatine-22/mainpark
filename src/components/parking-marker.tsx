@@ -74,7 +74,7 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
                         {statusText}
                     </Badge>
                     <div className="font-semibold text-lg">
-                        ₹{lot.pricePerHour}<span className="text-sm text-muted-foreground">/hr</span>
+                        Rs {lot.pricePerHour}<span className="text-sm text-muted-foreground">/hr</span>
                     </div>
                 </div>
                 <div className="flex justify-between gap-2 mt-3">

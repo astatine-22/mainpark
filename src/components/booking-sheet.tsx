@@ -84,7 +84,7 @@ export function BookingSheet({ lot, isOpen, onOpenChange }: BookingSheetProps) {
             <div className="w-full space-y-4">
                 <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total Price:</span>
-                    <span>₹{totalPrice}</span>
+                    <span>Rs {totalPrice}</span>
                 </div>
                 <Button type="submit" size="lg" className="w-full" onClick={handleBooking}>
                     <Zap className="mr-2"/> Book Now & Pay

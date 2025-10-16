@@ -56,7 +56,7 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
                     <div className={cn('w-3 h-3 rounded-full', statusColor)}></div>
                     <p className="text-sm font-semibold">{lot.availableSpots} <span className="font-normal text-muted-foreground">/ {lot.totalSpots} spots</span></p>
                 </div>
-                <p className="text-base font-semibold">₹{lot.pricePerHour}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
+                <p className="text-base font-semibold">Rs {lot.pricePerHour}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
             </div>
             <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps/dir/?api=1&destination=${lot.position.lat},${lot.position.lng}`, '_blank'); }}>

@@ -20,7 +20,7 @@ export default function RecentBookings() {
             <p className="text-sm text-muted-foreground">{booking.parkingLot.name}</p>
           </div>
           <div className="ml-auto font-medium text-right">
-            <p>₹{booking.amount}</p>
+            <p>Rs {booking.amount}</p>
             <Badge variant={booking.status === 'active' ? 'default' : 'secondary'} className="mt-1">
                 {booking.status}
             </Badge>
