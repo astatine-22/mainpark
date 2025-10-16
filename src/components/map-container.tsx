@@ -100,8 +100,8 @@ function ParkingFinder() {
   );
   
   return (
-      <div className="h-[calc(100vh-4rem)] w-full flex flex-col lg:flex-row">
-        <div className="h-3/5 w-full lg:h-full lg:w-3/5">
+      <div className="h-[calc(100vh-4rem)] w-full flex flex-col">
+        <div className="flex-grow w-full h-[60%]" style={{minHeight: '400px'}}>
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -110,8 +110,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="h-2/5 w-full lg:h-full lg:w-2/5 flex flex-col">
-           <Card className="flex flex-col h-full rounded-none lg:rounded-l-none lg:border-l-0 border-t">
+        <aside className="w-full flex-shrink-0" style={{height: 'calc(40% - 4rem)'}}>
+           <Card className="flex flex-col h-full rounded-none lg:rounded-none border-t">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
