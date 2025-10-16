@@ -45,8 +45,8 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
 
   // Effect to get initial location and set default search
   useEffect(() => {
-    // Only run if we don't have a search position yet
-    if (searchPosition) return;
+    // This effect should only run once to get the initial location
+    if (userPosition || searchPosition) return;
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -77,9 +77,10 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         setStatusMessage('Geolocation is not supported by your browser.');
         setCurrentSearchTerm('India');
     }
-  }, [searchPosition]); // Reruns if searchPosition is null
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to ensure it runs only once on mount
 
-  // Effect to watch for live location updates
+  // Effect to watch for live location updates for the blue dot
   useEffect(() => {
     const watchId = navigator.geolocation.watchPosition((position) => {
       setUserPosition({
