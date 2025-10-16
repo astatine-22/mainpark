@@ -31,38 +31,37 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
+  // Effect for initialization and initial search
   useEffect(() => {
     if (!map) return;
+    if (!placesServiceRef.current) placesServiceRef.current = new google.maps.places.PlacesService(map);
+    if (!geocoderRef.current) geocoderRef.current = new google.maps.Geocoder();
 
-    if (!placesServiceRef.current) {
-        placesServiceRef.current = new google.maps.places.PlacesService(map);
-    }
-    if (!geocoderRef.current) {
-        geocoderRef.current = new google.maps.Geocoder();
-    }
-    
-    // Get initial location and perform initial search
     navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const newPosition = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-            };
-            setUserPosition(newPosition);
-            setSearchPosition(newPosition);
-            setMapCenter(newPosition);
-            setCurrentSearchTerm('your location');
-        },
-        (err) => {
-            console.warn("Could not get user location. Falling back to default. Error:", err.message || "Unknown reason");
-            const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
-            setUserPosition(null);
-            setSearchPosition(defaultPosition);
-            setMapCenter(defaultPosition);
-            setStatusMessage('Could not get your location. Showing results for India.');
-            setCurrentSearchTerm('India');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      (position) => {
+        const newPosition = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setUserPosition(newPosition);
+        if (!searchPosition) { // Only set search position if it's the initial load
+          setSearchPosition(newPosition);
+          setMapCenter(newPosition);
+          setCurrentSearchTerm('your location');
+        }
+      },
+      (err) => {
+        console.warn("Could not get user location. Falling back to default. Error:", err.message || "Unknown reason");
+        const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
+        setUserPosition(null);
+        if (!searchPosition) {
+          setSearchPosition(defaultPosition);
+          setMapCenter(defaultPosition);
+          setStatusMessage('Could not get your location. Showing results for India.');
+          setCurrentSearchTerm('India');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   }, [map]);
 
