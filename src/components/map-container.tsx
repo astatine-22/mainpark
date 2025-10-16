@@ -81,7 +81,7 @@ export default function MapContainer() {
   return (
     <APIProvider apiKey={apiKey}>
       <div className="container mx-auto grid h-[calc(100vh-4rem)] max-w-7xl grid-cols-1 md:grid-cols-3 md:gap-6 py-4">
-        <div className="relative h-[50vh] md:h-full md:col-span-2 rounded-lg overflow-hidden border shadow-md">
+        <div className="relative h-[60vh] md:h-full md:col-span-2 rounded-lg overflow-hidden border shadow-md">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -90,7 +90,7 @@ export default function MapContainer() {
             userPosition={userPosition}
           />
         </div>
-        <Card className="flex flex-col h-[40vh] md:h-full">
+        <Card className="flex flex-col mt-4 md:mt-0 h-[calc(40vh-4rem-1rem)] md:h-full">
           <CardHeader>
             <CardTitle>Nearby Parking</CardTitle>
             <div className="relative">
