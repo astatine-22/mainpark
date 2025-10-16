@@ -14,14 +14,14 @@ interface ParkingMapProps {
 
 export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, selectedLot, userPosition }: ParkingMapProps) {
   
-  const defaultCenter = { lat: 28.6139, lng: 77.2090 }; // New Delhi
+  const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // Center of India
   const center = userPosition || defaultCenter;
 
   return (
     <div className="w-full h-full">
         <Map
             center={center}
-            zoom={userPosition ? 14 : 12}
+            zoom={userPosition ? 14 : 5}
             gestureHandling={'greedy'}
             disableDefaultUI={false}
             mapId="parksmart-map"

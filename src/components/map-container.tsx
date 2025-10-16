@@ -19,6 +19,7 @@ function ParkingFinder() {
   const [searchTerm, setSearchTerm] = useState('');
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasCenteredOnUser, setHasCenteredOnUser] = useState(false);
 
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -28,10 +29,9 @@ function ParkingFinder() {
       placesServiceRef.current = new google.maps.places.PlacesService(map);
     }
   }, [map]);
-
+  
   useEffect(() => {
     let watchId: number;
-
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
@@ -40,36 +40,31 @@ function ParkingFinder() {
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
-          if (map) {
+
+          if (map && !hasCenteredOnUser) {
             map.panTo(newPosition);
+            map.setZoom(14);
+            setHasCenteredOnUser(true);
           }
         },
         (error) => {
           console.error("Error getting user location:", error);
-          // Fallback to default location if user denies permission or there's an error
-          if (!userPosition) {
-             setUserPosition({ lat: 28.6139, lng: 77.2090 });
-          }
+           // Don't set a fallback location, let the map default to a wider view
         },
         {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0,
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
         }
       );
-    } else {
-       // Fallback for older browsers
-       if (!userPosition) {
-        setUserPosition({ lat: 28.6139, lng: 77.2090 });
-       }
-    }
+    } 
 
     return () => {
-        if(watchId) {
-            navigator.geolocation.clearWatch(watchId);
-        }
-    }
-  }, [map, userPosition]);
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [map, hasCenteredOnUser]);
 
   useEffect(() => {
     if (!placesServiceRef.current || !userPosition) return;
@@ -129,8 +124,8 @@ function ParkingFinder() {
   );
   
   return (
-      <div className="h-[calc(100vh-4rem)] w-full flex flex-col md:flex-row">
-        <div className="md:w-2/3 w-full h-1/2 md:h-full">
+      <div className="h-[calc(100vh-4rem)] w-full flex flex-col">
+        <div className="flex-grow w-full h-3/5">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -139,8 +134,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="md:w-1/3 w-full h-1/2 md:h-full">
-           <Card className="flex flex-col h-full rounded-none md:rounded-l-none border-t md:border-t-0 md:border-l">
+        <aside className="w-full h-2/5">
+           <Card className="flex flex-col h-full rounded-none md:rounded-l-none border-t md:border-t-0">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
@@ -178,7 +173,7 @@ function ParkingFinder() {
                         />
                       ))
                     ) : (
-                      <p className="text-muted-foreground text-center py-8">No paid parking lots found nearby.</p>
+                      <p className="text-muted-foreground text-center py-8">No paid parking lots found nearby. Searching...</p>
                     )}
                   </div>
                 </ScrollArea>
