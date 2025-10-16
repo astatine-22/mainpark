@@ -18,28 +18,30 @@ export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, se
   const center = userPosition || defaultCenter;
 
   return (
-    <Map
-      center={center}
-      zoom={userPosition ? 14 : 12}
-      gestureHandling={'greedy'}
-      disableDefaultUI={false}
-      mapId="parksmart-map"
-      className="w-full h-full"
-    >
-      {parkingLots.map((lot) => (
-        <ParkingMarker 
-            key={lot.id} 
-            lot={lot}
-            onClick={() => onSelectLot(lot)}
-            onBook={() => onOpenBooking(lot)}
-            isSelected={selectedLot?.id === lot.id}
-        />
-      ))}
-      {userPosition && (
-         <AdvancedMarker position={userPosition} title={'You are here'}>
-            <div className='w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md'></div>
-        </AdvancedMarker>
-      )}
-    </Map>
+    <div className="h-[60vh] lg:h-full w-full">
+        <Map
+            center={center}
+            zoom={userPosition ? 14 : 12}
+            gestureHandling={'greedy'}
+            disableDefaultUI={false}
+            mapId="parksmart-map"
+            className="w-full h-full"
+            >
+            {parkingLots.map((lot) => (
+                <ParkingMarker 
+                    key={lot.id} 
+                    lot={lot}
+                    onClick={() => onSelectLot(lot)}
+                    onBook={() => onOpenBooking(lot)}
+                    isSelected={selectedLot?.id === lot.id}
+                />
+            ))}
+            {userPosition && (
+                <AdvancedMarker position={userPosition} title={'You are here'}>
+                    <div className='w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md'></div>
+                </AdvancedMarker>
+            )}
+        </Map>
+    </div>
   );
 }
