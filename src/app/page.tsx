@@ -25,7 +25,7 @@ export default function DriverPage() {
         onNearbyClick={handleNearbyClick}
         showSearch={true}
       />
-      <main className="flex-1 overflow-hidden">
+      <main className="relative flex-1">
         <MapContainer
           searchTerm={searchTerm}
           isNearbySearch={isNearbySearch}

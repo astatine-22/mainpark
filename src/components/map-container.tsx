@@ -27,53 +27,45 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const [currentSearchTerm, setCurrentSearchTerm] = useState('your location');
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
-
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
-  // Effect for getting initial location and triggering the first search
   useEffect(() => {
     if (!map) return;
-    
+
     if (!placesServiceRef.current) {
         placesServiceRef.current = new google.maps.places.PlacesService(map);
     }
     if (!geocoderRef.current) {
         geocoderRef.current = new google.maps.Geocoder();
     }
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+    
+    // Get initial location and perform initial search
+    navigator.geolocation.getCurrentPosition(
         (position) => {
-          const newPosition = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setUserPosition(newPosition);
-          setSearchPosition(newPosition);
-          setMapCenter(newPosition);
-          setCurrentSearchTerm('your location');
+            const newPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+            };
+            setUserPosition(newPosition);
+            setSearchPosition(newPosition);
+            setMapCenter(newPosition);
+            setCurrentSearchTerm('your location');
         },
-        (error) => {
-          console.warn("Could not get user location. Falling back to default. Error:", error.message || "Unknown reason");
-          const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
-          setUserPosition(null);
-          setSearchPosition(defaultPosition);
-          setMapCenter(defaultPosition);
-          setStatusMessage('Could not get your location. Showing results for India.');
-          setCurrentSearchTerm('India');
+        (err) => {
+            console.warn("Could not get user location. Falling back to default. Error:", err.message || "Unknown reason");
+            const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
+            setUserPosition(null);
+            setSearchPosition(defaultPosition);
+            setMapCenter(defaultPosition);
+            setStatusMessage('Could not get your location. Showing results for India.');
+            setCurrentSearchTerm('India');
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-        const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
-        setSearchPosition(defaultPosition);
-        setMapCenter(defaultPosition);
-        setStatusMessage('Geolocation is not supported by your browser.');
-        setCurrentSearchTerm('India');
-    }
+    );
   }, [map]);
+
 
   // Effect to watch for live location updates for the blue dot
   useEffect(() => {
@@ -195,8 +187,8 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-grow">
+    <>
+      <div className="absolute inset-0">
         <ParkingMap
           parkingLots={parkingLots}
           onSelectLot={handleSelectLot}
@@ -206,16 +198,16 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           center={mapCenter}
         />
       </div>
-      <div className="h-2/5 flex-shrink-0">
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-4 h-2/5">
         <ScrollArea className="h-full w-full">
-          <div className="p-4">
-            <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold tracking-tight font-headline text-background bg-foreground/70 p-2 rounded-md backdrop-blur-sm">
               {loading ? 'Finding parking...' : `Parking Found Near ${currentSearchTerm}`}
             </h2>
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-48 w-full" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-52 w-full" />
                 ))}
               </div>
             ) : parkingLots.length > 0 ? (
@@ -231,7 +223,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
                 ))}
               </div>
             ) : (
-              <Card className="w-full col-span-full">
+               <Card className="w-full col-span-full">
                 <CardContent className="flex items-center justify-center h-full">
                   <p className="py-8 text-center text-muted-foreground">{statusMessage}</p>
                 </CardContent>
@@ -247,7 +239,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           onOpenChange={setIsBookingSheetOpen}
         />
       )}
-    </div>
+    </>
   );
 }
 
