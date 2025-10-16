@@ -25,6 +25,8 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Finding nearby parking...');
   const [currentSearchTerm, setCurrentSearchTerm] = useState('your location');
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+
 
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -52,17 +54,25 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           };
           setUserPosition(newPosition);
           setSearchPosition(newPosition); // Trigger initial search
+          setMapCenter(newPosition);
+          setCurrentSearchTerm('your location');
         },
         (error) => {
           console.error("Error getting user location:", error);
-          setLoading(false);
+          const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
+          setSearchPosition(defaultPosition);
+          setMapCenter(defaultPosition);
           setStatusMessage('Could not get your location. Please allow location access or search for a location.');
+          setCurrentSearchTerm('India');
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-      setLoading(false);
-      setStatusMessage('Geolocation is not supported by your browser.');
+        const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
+        setSearchPosition(defaultPosition);
+        setMapCenter(defaultPosition);
+        setStatusMessage('Geolocation is not supported by your browser.');
+        setCurrentSearchTerm('India');
     }
 
     // Watch for live location updates for the blue dot
@@ -87,7 +97,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
       geocoderRef.current.geocode({ address: searchTerm }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
           const location = results[0].geometry.location;
-          setSearchPosition({ lat: location.lat(), lng: location.lng() });
+          const newPosition = { lat: location.lat(), lng: location.lng() };
+          setSearchPosition(newPosition);
+          setMapCenter(newPosition);
         } else {
           console.error(`Geocode was not successful for the following reason: ${status}`);
           setLoading(false);
@@ -105,20 +117,21 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         setCurrentSearchTerm('your location');
         setStatusMessage('Finding nearby parking...');
         setSearchPosition(userPosition);
+        setMapCenter(userPosition);
       } else {
         setStatusMessage('Could not get your location. Please allow location access.');
       }
       onSearchHandled(); // Reset the trigger
     }
-  }, [isNearbySearch, userPosition, onSearchHandled]);
+  }, [isNearbySearch, userPosition]);
   
   // Effect to pan the map
   useEffect(() => {
-    if (map && searchPosition) {
-        map.panTo(searchPosition);
+    if (map && mapCenter) {
+        map.panTo(mapCenter);
         map.setZoom(14);
     }
-  }, [map, searchPosition]);
+  }, [map, mapCenter]);
 
   // Effect to search for places
   useEffect(() => {
@@ -155,16 +168,46 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         }));
         setParkingLots(fetchedLots);
         if (fetchedLots.length === 0) {
-          setStatusMessage('No paid parking lots found nearby.');
+          setStatusMessage('No paid parking lots found in this area.');
         }
       } else {
-        if (status !== 'OK') console.error('Places API search failed:', status);
         setParkingLots([]);
-        setStatusMessage('No paid parking lots found nearby.');
+        setStatusMessage('No paid parking lots found in this area.');
       }
       setLoading(false);
     });
   }, [searchPosition]);
+
+  const handleMapIdle = () => {
+    if (map) {
+      const newCenter = map.getCenter();
+      if (newCenter) {
+        const newPosition = { lat: newCenter.lat(), lng: newCenter.lng() };
+
+        // To avoid excessive searches, only search if the map has moved a significant distance
+        if (!searchPosition || 
+            (Math.abs(newPosition.lat - searchPosition.lat) > 0.005 || 
+             Math.abs(newPosition.lng - searchPosition.lng) > 0.005)) 
+        {
+          setSearchPosition(newPosition);
+          // Update the search term to reflect the new area (reverse geocoding)
+          if(geocoderRef.current) {
+            geocoderRef.current.geocode({ location: newPosition }, (results, status) => {
+              if (status === 'OK' && results && results[0]) {
+                // Find a suitable name for the area
+                const bestResult = results.find(r => r.types.includes('locality')) || 
+                                   results.find(r => r.types.includes('sublocality')) || 
+                                   results.find(r => r.types.includes('administrative_area_level_2')) || 
+                                   results[0];
+                setCurrentSearchTerm(bestResult.formatted_address.split(',').slice(0, 2).join(', '));
+              }
+            });
+          }
+        }
+      }
+    }
+  };
+
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
@@ -180,18 +223,19 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   };
 
   return (
-    <div className="h-full w-full grid grid-rows-[60%,40%]">
-      <div className="w-full h-full">
+    <div className="flex flex-col h-full">
+      <div className="flex-grow">
         <ParkingMap
           parkingLots={parkingLots}
           onSelectLot={handleSelectLot}
           onOpenBooking={handleOpenBooking}
           selectedLot={selectedLot}
           userPosition={userPosition}
-          searchPosition={searchPosition}
+          center={mapCenter}
+          onIdle={handleMapIdle}
         />
       </div>
-      <div className="w-full h-full overflow-y-auto">
+      <div className="flex-shrink-0 h-[40%] overflow-y-auto">
         <ScrollArea className="h-full w-full">
           <div className="p-4">
             <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
