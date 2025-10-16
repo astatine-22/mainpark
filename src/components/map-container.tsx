@@ -23,12 +23,14 @@ function ParkingFinder() {
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
 
+  // Effect to initialize the PlacesService once the map is available
   useEffect(() => {
     if (map && !placesServiceRef.current) {
       placesServiceRef.current = new google.maps.places.PlacesService(map);
     }
   }, [map]);
   
+  // Effect to get and watch the user's current location
   useEffect(() => {
     let watchId: number;
     if (navigator.geolocation) {
@@ -136,8 +138,8 @@ function ParkingFinder() {
   );
   
   return (
-    <div className="h-screen w-full flex flex-col">
-        <div className="w-full h-[60%]">
+    <div className="flex h-screen w-full flex-col md:flex-row">
+        <div className="h-[60vh] w-full md:h-full md:w-1/2 lg:w-2/3">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -146,8 +148,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="w-full h-[40%]">
-           <Card className="flex flex-col h-full rounded-none border-t md:border-t-0">
+        <aside className="h-[40vh] w-full md:h-full md:w-1/2 lg:w-1/3">
+           <Card className="flex h-full flex-col rounded-none border-t md:border-l md:border-t-0">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
@@ -185,7 +187,7 @@ function ParkingFinder() {
                         />
                       ))
                     ) : (
-                      <p className="text-muted-foreground text-center py-8">{userPosition ? 'No paid parking lots found nearby.' : 'Getting your location to find nearby parking...'}</p>
+                      <p className="py-8 text-center text-muted-foreground">{userPosition ? 'No paid parking lots found nearby.' : 'Getting your location to find nearby parking...'}</p>
                     )}
                   </div>
                 </ScrollArea>
