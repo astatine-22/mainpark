@@ -19,7 +19,6 @@ function ParkingFinder() {
   const [searchTerm, setSearchTerm] = useState('');
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasCenteredOnUser, setHasCenteredOnUser] = useState(false);
 
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -41,15 +40,16 @@ function ParkingFinder() {
           };
           setUserPosition(newPosition);
 
-          if (map && !hasCenteredOnUser) {
+          if (map) {
             map.panTo(newPosition);
             map.setZoom(14);
-            setHasCenteredOnUser(true);
           }
         },
         (error) => {
           console.error("Error getting user location:", error);
            // Don't set a fallback location, let the map default to a wider view
+           // The search will only trigger when userPosition is not null.
+           setLoading(false); 
         },
         {
           enableHighAccuracy: true,
@@ -57,14 +57,16 @@ function ParkingFinder() {
           maximumAge: 0,
         }
       );
-    } 
+    } else {
+        setLoading(false);
+    }
 
     return () => {
       if (watchId) {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [map, hasCenteredOnUser]);
+  }, [map]);
 
   useEffect(() => {
     if (!placesServiceRef.current || !userPosition) return;
@@ -100,6 +102,7 @@ function ParkingFinder() {
         setParkingLots(fetchedLots);
       } else {
         console.error('Places API search failed:', status);
+        setParkingLots([]);
       }
       setLoading(false);
     });
@@ -124,8 +127,8 @@ function ParkingFinder() {
   );
   
   return (
-      <div className="h-[calc(100vh-4rem)] w-full flex flex-col">
-        <div className="flex-grow w-full h-3/5">
+    <div className="h-screen w-full flex flex-col md:flex-row">
+      <div className="w-full md:w-3/5 h-2/5 md:h-full">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -134,8 +137,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="w-full h-2/5">
-           <Card className="flex flex-col h-full rounded-none md:rounded-l-none border-t md:border-t-0">
+        <aside className="w-full md:w-2/5 h-3/5 md:h-full">
+           <Card className="flex flex-col h-full rounded-none md:rounded-l-none border-t md:border-t-0 md:border-l">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
@@ -173,7 +176,7 @@ function ParkingFinder() {
                         />
                       ))
                     ) : (
-                      <p className="text-muted-foreground text-center py-8">No paid parking lots found nearby. Searching...</p>
+                      <p className="text-muted-foreground text-center py-8">{userPosition ? 'No paid parking lots found nearby.' : 'Getting your location to find nearby parking...'}</p>
                     )}
                   </div>
                 </ScrollArea>
