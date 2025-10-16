@@ -26,7 +26,7 @@ export default function RootLayout({
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
         <div className="relative flex min-h-screen flex-col">
-          <Header />
+          {/* The Header is now part of the page content to allow state passing */}
           <main className="flex-1">{children}</main>
         </div>
         <Toaster />

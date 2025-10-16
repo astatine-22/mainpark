@@ -8,15 +8,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ParkingLot } from '@/lib/types';
 import { BookingSheet } from './booking-sheet';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
 import { Search } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
-function ParkingFinder() {
+interface ParkingFinderProps {
+  searchTerm: string;
+  onSearchTermChange: (term: string) => void;
+}
+
+function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -138,7 +141,7 @@ function ParkingFinder() {
   );
   
   return (
-    <div className="flex h-screen w-full flex-col">
+    <div className="flex h-full w-full flex-col">
         <div className="h-[60vh] w-full">
           <ParkingMap
             parkingLots={filteredLots}
@@ -152,15 +155,6 @@ function ParkingFinder() {
            <Card className="flex h-full flex-col rounded-none border-t">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search parking by name or address..." 
-                        className="pl-8"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
             </CardHeader>
             <CardContent className="flex-grow overflow-hidden">
                 <ScrollArea className="h-full pr-4">
@@ -205,8 +199,12 @@ function ParkingFinder() {
   );
 }
 
+interface MapContainerProps {
+  searchTerm: string;
+  onSearchTermChange: (term: string) => void;
+}
 
-export default function MapContainer() {
+export default function MapContainer({ searchTerm, onSearchTermChange }: MapContainerProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return (
@@ -220,7 +218,7 @@ export default function MapContainer() {
 
   return (
     <APIProvider apiKey={apiKey} libraries={['places']}>
-      <ParkingFinder />
+      <ParkingFinder searchTerm={searchTerm} onSearchTermChange={onSearchTermChange} />
     </APIProvider>
   )
 }

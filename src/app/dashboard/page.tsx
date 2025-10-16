@@ -1,3 +1,4 @@
+import Header from '@/components/header';
 import {
   Card,
   CardContent,
@@ -18,6 +19,8 @@ import OccupancyPredictor from '@/components/dashboard/occupancy-predictor';
 
 export default function DashboardPage() {
   return (
+    <>
+    <Header />
     <div className="container mx-auto py-10">
       <div className="space-y-4">
         <h2 className="text-3xl font-bold tracking-tight font-headline">
@@ -85,5 +88,6 @@ export default function DashboardPage() {
         </Tabs>
       </div>
     </div>
+    </>
   );
 }
