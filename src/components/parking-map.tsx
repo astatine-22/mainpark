@@ -11,10 +11,9 @@ interface ParkingMapProps {
   selectedLot: ParkingLot | null;
   userPosition: { lat: number; lng: number } | null;
   center: { lat: number; lng: number } | null;
-  onIdle: () => void;
 }
 
-export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, selectedLot, userPosition, center, onIdle }: ParkingMapProps) {
+export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, selectedLot, userPosition, center }: ParkingMapProps) {
   
   const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // Center of India
   const mapCenter = center || userPosition || defaultCenter;
@@ -28,7 +27,6 @@ export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, se
             disableDefaultUI={false}
             mapId="parksmart-map"
             className="w-full h-full"
-            onIdle={onIdle}
             >
             {parkingLots.map((lot) => (
                 <ParkingMarker 

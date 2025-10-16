@@ -45,6 +45,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
 
   // Effect to get initial location and set default search
   useEffect(() => {
+    // Only run if we don't have a search position yet
+    if (searchPosition) return;
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -74,8 +77,10 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         setStatusMessage('Geolocation is not supported by your browser.');
         setCurrentSearchTerm('India');
     }
+  }, [searchPosition]); // Reruns if searchPosition is null
 
-    // Watch for live location updates for the blue dot
+  // Effect to watch for live location updates
+  useEffect(() => {
     const watchId = navigator.geolocation.watchPosition((position) => {
       setUserPosition({
         lat: position.coords.latitude,
@@ -86,7 +91,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, []); // Run only once on mount
+  }, []);
 
   // Effect for handling manual text search
   useEffect(() => {
@@ -178,36 +183,6 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     });
   }, [searchPosition]);
 
-  const handleMapIdle = () => {
-    if (map) {
-      const newCenter = map.getCenter();
-      if (newCenter) {
-        const newPosition = { lat: newCenter.lat(), lng: newCenter.lng() };
-
-        // To avoid excessive searches, only search if the map has moved a significant distance
-        if (!searchPosition || 
-            (Math.abs(newPosition.lat - searchPosition.lat) > 0.005 || 
-             Math.abs(newPosition.lng - searchPosition.lng) > 0.005)) 
-        {
-          setSearchPosition(newPosition);
-          // Update the search term to reflect the new area (reverse geocoding)
-          if(geocoderRef.current) {
-            geocoderRef.current.geocode({ location: newPosition }, (results, status) => {
-              if (status === 'OK' && results && results[0]) {
-                // Find a suitable name for the area
-                const bestResult = results.find(r => r.types.includes('locality')) || 
-                                   results.find(r => r.types.includes('sublocality')) || 
-                                   results.find(r => r.types.includes('administrative_area_level_2')) || 
-                                   results[0];
-                setCurrentSearchTerm(bestResult.formatted_address.split(',').slice(0, 2).join(', '));
-              }
-            });
-          }
-        }
-      }
-    }
-  };
-
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
@@ -232,7 +207,6 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           selectedLot={selectedLot}
           userPosition={userPosition}
           center={mapCenter}
-          onIdle={handleMapIdle}
         />
       </div>
       <div className="h-2/5 flex-shrink-0">
@@ -304,5 +278,3 @@ export default function MapContainer({ searchTerm, isNearbySearch, onSearchHandl
     </APIProvider>
   )
 }
-
-    
