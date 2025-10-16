@@ -17,6 +17,7 @@ export default function MapContainer() {
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   // Simulate real-time availability updates
   useEffect(() => {
@@ -33,6 +34,22 @@ export default function MapContainer() {
     }, 30000); // Update every 30 seconds
 
     return () => clearInterval(interval);
+  }, []);
+  
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserPosition({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Error getting user location:", error);
+        }
+      );
+    }
   }, []);
 
   const handleSelectLot = (lot: ParkingLot) => {
@@ -70,6 +87,7 @@ export default function MapContainer() {
             onSelectLot={handleSelectLot}
             onOpenBooking={handleOpenBooking}
             selectedLot={selectedLot}
+            userPosition={userPosition}
           />
         </div>
         <Card className="flex flex-col h-[40vh] md:h-full">

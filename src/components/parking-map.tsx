@@ -1,6 +1,6 @@
 'use client';
 
-import { Map } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import type { ParkingLot } from '@/lib/types';
 import ParkingMarker from './parking-marker';
 
@@ -9,16 +9,18 @@ interface ParkingMapProps {
   onSelectLot: (lot: ParkingLot) => void;
   onOpenBooking: (lot: ParkingLot) => void;
   selectedLot: ParkingLot | null;
+  userPosition: { lat: number; lng: number } | null;
 }
 
-export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, selectedLot }: ParkingMapProps) {
+export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, selectedLot, userPosition }: ParkingMapProps) {
   
   const defaultCenter = { lat: 28.6139, lng: 77.2090 }; // New Delhi
+  const center = userPosition || defaultCenter;
 
   return (
     <Map
-      defaultCenter={defaultCenter}
-      defaultZoom={12}
+      center={center}
+      zoom={userPosition ? 14 : 12}
       gestureHandling={'greedy'}
       disableDefaultUI={true}
       mapId="parksmart-map"
@@ -33,6 +35,11 @@ export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, se
             isSelected={selectedLot?.id === lot.id}
         />
       ))}
+      {userPosition && (
+         <AdvancedMarker position={userPosition} title={'You are here'}>
+            <div className='w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md'></div>
+        </AdvancedMarker>
+      )}
     </Map>
   );
 }
