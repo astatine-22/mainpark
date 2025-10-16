@@ -7,15 +7,16 @@ import ParkingListItem from '@/components/parking-list-item';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ParkingLot } from '@/lib/types';
 import { BookingSheet } from './booking-sheet';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 
 interface ParkingFinderProps {
   searchTerm: string;
-  searchTrigger: number;
+  isNearbySearch: boolean;
+  onSearchHandled: () => void;
 }
 
-function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
+function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingFinderProps) {
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
@@ -54,7 +55,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
         },
         (error) => {
           console.error("Error getting user location:", error);
-          if (!searchPosition) { // Only show error if no search has happened
+          if (!searchPosition) {
             setLoading(false);
             setStatusMessage('Could not get your location. Please allow location access or search for a location.');
           }
@@ -72,10 +73,9 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
     };
   }, [searchPosition]);
 
-  // Effect for handling search logic
+  // Effect for handling manual text search
   useEffect(() => {
-    // Manual search by user
-    if (searchTrigger > 0 && searchTerm.trim() !== '' && geocoderRef.current) {
+    if (searchTerm.trim() !== '' && geocoderRef.current) {
       setLoading(true);
       setCurrentSearchTerm(searchTerm);
       setStatusMessage(`Searching for parking near ${searchTerm}...`);
@@ -89,16 +89,32 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
           setStatusMessage(`Could not find location: ${searchTerm}`);
         }
       });
-    } 
-    // "Nearby" button click or initial load
-    else if ((searchTrigger > 0 && searchTerm.trim() === '') || (searchTrigger === 0 && userPosition)) {
-       setLoading(true);
-       setCurrentSearchTerm('your location');
-       setStatusMessage('Finding nearby parking...');
-       setSearchPosition(userPosition);
     }
-  }, [searchTrigger, searchTerm, userPosition]);
+  }, [searchTerm]);
+
+  // Effect for handling "Nearby" button click
+  useEffect(() => {
+    if (isNearbySearch) {
+      if (userPosition) {
+        setLoading(true);
+        setCurrentSearchTerm('your location');
+        setStatusMessage('Finding nearby parking...');
+        setSearchPosition(userPosition);
+      } else {
+        setStatusMessage('Could not get your location. Please allow location access.');
+      }
+      onSearchHandled(); // Reset the trigger
+    }
+  }, [isNearbySearch, userPosition, onSearchHandled]);
+
+  // Effect for initial load with user position
+  useEffect(() => {
+    if (!searchPosition && userPosition) {
+        setSearchPosition(userPosition);
+    }
+  }, [userPosition, searchPosition]);
   
+  // Effect to pan the map
   useEffect(() => {
     if (map && searchPosition) {
         map.panTo(searchPosition);
@@ -106,6 +122,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
     }
   }, [map, searchPosition]);
 
+  // Effect to search for places
   useEffect(() => {
     if (!placesServiceRef.current || !searchPosition) return;
 
@@ -114,7 +131,6 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
     const request: google.maps.places.PlaceSearchRequest = {
       location: searchPosition,
       radius: 1500,
-      type: 'parking',
       keyword: 'pay parking'
     };
 
@@ -224,10 +240,11 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
 
 interface MapContainerProps {
   searchTerm: string;
-  searchTrigger: number;
+  isNearbySearch: boolean;
+  onSearchHandled: () => void;
 }
 
-export default function MapContainer({ searchTerm, searchTrigger }: MapContainerProps) {
+export default function MapContainer({ searchTerm, isNearbySearch, onSearchHandled }: MapContainerProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return (
@@ -241,7 +258,7 @@ export default function MapContainer({ searchTerm, searchTrigger }: MapContainer
 
   return (
     <APIProvider apiKey={apiKey} libraries={['places', 'geocoding']}>
-      <ParkingFinder searchTerm={searchTerm} searchTrigger={searchTrigger} />
+      <ParkingFinder searchTerm={searchTerm} isNearbySearch={isNearbySearch} onSearchHandled={onSearchHandled} />
     </APIProvider>
   )
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useState } from 'react';
 import { Car, Search, LocateFixed } from 'lucide-react';
 import { MainNav } from './main-nav';
 import { UserNav } from './user-nav';
@@ -8,20 +9,24 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 
 
 interface HeaderProps {
-  searchTerm?: string;
-  onSearchTermChange?: (term: string) => void;
-  onSearchSubmit?: () => void;
-  onNearbyClick?: () => void;
+  onSearchSubmit: (term: string) => void;
+  onNearbyClick: () => void;
   showSearch?: boolean;
 }
 
-export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit, onNearbyClick, showSearch }: HeaderProps) {
-  
+export default function Header({ onSearchSubmit, onNearbyClick, showSearch }: HeaderProps) {
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      onSearchSubmit?.();
+      onSearchSubmit(localSearchTerm);
     }
   };
+  
+  const handleNearby = () => {
+    setLocalSearchTerm(''); // Clear local input on nearby click
+    onNearbyClick();
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
@@ -39,14 +44,14 @@ export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit,
                   <Input 
                       placeholder="Search any city or locality..." 
                       className="pl-8"
-                      value={searchTerm}
-                      onChange={(e) => onSearchTermChange?.(e.target.value)}
+                      value={localSearchTerm}
+                      onChange={(e) => setLocalSearchTerm(e.target.value)}
                       onKeyDown={handleKeyDown}
                   />
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={onNearbyClick} className="flex-shrink-0">
+                        <Button variant="outline" size="icon" onClick={handleNearby} className="flex-shrink-0">
                           <LocateFixed className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>

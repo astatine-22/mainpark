@@ -5,28 +5,28 @@ import MapContainer from '@/components/map-container';
 
 export default function DriverPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchTrigger, setSearchTrigger] = useState(0);
+  const [isNearbySearch, setIsNearbySearch] = useState(false);
 
-  const handleSearchSubmit = () => {
-    setSearchTrigger(prev => prev + 1);
+  const handleSearchSubmit = (newSearchTerm: string) => {
+    setSearchTerm(newSearchTerm);
+    setIsNearbySearch(false); 
   };
   
   const handleNearbyClick = () => {
-    setSearchTerm(''); // Clear search term to signal nearby search
-    setSearchTrigger(prev => prev + 1); // Trigger an update
+    // Set a flag to indicate nearby search, and clear the term
+    setIsNearbySearch(true);
+    setSearchTerm(''); 
   };
 
   return (
     <>
       <Header
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
         onSearchSubmit={handleSearchSubmit}
         onNearbyClick={handleNearbyClick}
         showSearch={true}
       />
       <div className="h-[calc(100vh-4rem)] w-full">
-        <MapContainer searchTerm={searchTerm} searchTrigger={searchTrigger} />
+        <MapContainer searchTerm={searchTerm} isNearbySearch={isNearbySearch} onSearchHandled={() => setIsNearbySearch(false)} />
       </div>
     </>
   );
