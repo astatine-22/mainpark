@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { APIProvider, useMap } from '@vis.gl/react-google-maps';
 import ParkingMap from '@/components/parking-map';
 import ParkingListItem from '@/components/parking-list-item';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockParkingLots } from '@/lib/mock-data';
 import type { ParkingLot } from '@/lib/types';
 import { BookingSheet } from './booking-sheet';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -22,36 +21,65 @@ function ParkingFinder() {
   const [loading, setLoading] = useState(true);
 
   const map = useMap();
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
 
   useEffect(() => {
+    if (map && !placesServiceRef.current) {
+      placesServiceRef.current = new google.maps.places.PlacesService(map);
+    }
+  }, [map]);
+
+  useEffect(() => {
+    let watchId: number;
+
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      watchId = navigator.geolocation.watchPosition(
         (position) => {
-          setUserPosition({
+          const newPosition = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setUserPosition(newPosition);
+          if (map) {
+            map.panTo(newPosition);
+          }
         },
         (error) => {
           console.error("Error getting user location:", error);
-          // Fallback to default location if user denies permission
-          setUserPosition({ lat: 28.6139, lng: 77.2090 }); 
+          // Fallback to default location if user denies permission or there's an error
+          if (!userPosition) {
+             setUserPosition({ lat: 28.6139, lng: 77.2090 });
+          }
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0,
         }
       );
     } else {
        // Fallback for older browsers
-       setUserPosition({ lat: 28.6139, lng: 77.2090 });
+       if (!userPosition) {
+        setUserPosition({ lat: 28.6139, lng: 77.2090 });
+       }
     }
-  }, []);
+
+    return () => {
+        if(watchId) {
+            navigator.geolocation.clearWatch(watchId);
+        }
+    }
+  }, [map, userPosition]);
 
   useEffect(() => {
-    if (!map || !userPosition) return;
+    if (!placesServiceRef.current || !userPosition) return;
 
-    const placesService = new google.maps.places.PlacesService(map);
+    const placesService = placesServiceRef.current;
     const request: google.maps.places.PlaceSearchRequest = {
       location: userPosition,
       radius: 5000, // 5km radius
       type: 'parking',
+      keyword: 'pay parking'
     };
 
     setLoading(true);
@@ -76,16 +104,17 @@ function ParkingFinder() {
         }));
         setParkingLots(fetchedLots);
       } else {
-        // In case of API error, fallback to mock data
-        setParkingLots(mockParkingLots);
         console.error('Places API search failed:', status);
       }
       setLoading(false);
     });
-  }, [map, userPosition]);
+  }, [userPosition]);
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
+    if(map) {
+      map.panTo(lot.position);
+    }
   };
 
   const handleOpenBooking = (lot: ParkingLot) => {
@@ -100,8 +129,8 @@ function ParkingFinder() {
   );
   
   return (
-      <div className="h-[calc(100vh-4rem)] w-full flex flex-col">
-        <div className="flex-grow w-full h-[60%]" style={{minHeight: '400px'}}>
+      <div className="h-[calc(100vh-4rem)] w-full flex flex-col md:flex-row">
+        <div className="md:w-2/3 w-full h-1/2 md:h-full">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -110,8 +139,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="w-full flex-shrink-0" style={{height: 'calc(40% - 4rem)'}}>
-           <Card className="flex flex-col h-full rounded-none lg:rounded-none border-t">
+        <aside className="md:w-1/3 w-full h-1/2 md:h-full">
+           <Card className="flex flex-col h-full rounded-none md:rounded-l-none border-t md:border-t-0 md:border-l">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
@@ -149,7 +178,7 @@ function ParkingFinder() {
                         />
                       ))
                     ) : (
-                      <p className="text-muted-foreground text-center py-8">No parking lots found nearby.</p>
+                      <p className="text-muted-foreground text-center py-8">No paid parking lots found nearby.</p>
                     )}
                   </div>
                 </ScrollArea>
