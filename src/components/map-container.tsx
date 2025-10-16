@@ -52,6 +52,10 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
+          // On first load, if we don't have a search position yet, use user's location.
+          if (!searchPosition) {
+            setSearchPosition(newPosition);
+          }
         },
         (error) => {
           console.error("Error getting user location:", error);
@@ -71,7 +75,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, []);
+  }, [searchPosition]); // Rerun if searchPosition changes to avoid setting it multiple times
 
   // Effect for handling manual text search
   useEffect(() => {
@@ -92,23 +96,20 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     }
   }, [searchTerm]);
 
-  // Effect for handling "Nearby" button click OR initial load
+  // Effect for handling "Nearby" button click
   useEffect(() => {
-    // This runs on "Nearby" click or when userPosition is first available
-    if (isNearbySearch || (userPosition && !searchPosition)) {
+    if (isNearbySearch) {
       if (userPosition) {
         setLoading(true);
         setCurrentSearchTerm('your location');
         setStatusMessage('Finding nearby parking...');
         setSearchPosition(userPosition);
-      } else if (isNearbySearch) { // Only show this if user explicitly clicks "Nearby"
+      } else {
         setStatusMessage('Could not get your location. Please allow location access.');
       }
-      if (isNearbySearch) {
-        onSearchHandled(); // Reset the trigger if it was a click
-      }
+      onSearchHandled(); // Reset the trigger
     }
-  }, [isNearbySearch, userPosition, searchPosition, onSearchHandled]);
+  }, [isNearbySearch, userPosition]);
   
   // Effect to pan the map
   useEffect(() => {
