@@ -31,23 +31,17 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  const isInitialSearchDone = useRef(false);
-
-  // Effect to initialize Google Maps services
-  useEffect(() => {
-    if (map) {
-      if (!placesServiceRef.current) {
-        placesServiceRef.current = new google.maps.places.PlacesService(map);
-      }
-      if (!geocoderRef.current) {
-        geocoderRef.current = new google.maps.Geocoder();
-      }
-    }
-  }, [map]);
 
   // Effect for getting initial location and triggering the first search
   useEffect(() => {
-    if (isInitialSearchDone.current || !map) return;
+    if (!map) return;
+    
+    if (!placesServiceRef.current) {
+        placesServiceRef.current = new google.maps.places.PlacesService(map);
+    }
+    if (!geocoderRef.current) {
+        geocoderRef.current = new google.maps.Geocoder();
+    }
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -60,19 +54,17 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           setSearchPosition(newPosition);
           setMapCenter(newPosition);
           setCurrentSearchTerm('your location');
-          isInitialSearchDone.current = true;
         },
         (error) => {
-          console.warn("Could not get user location. Falling back to default. Error:", error.message);
+          console.warn("Could not get user location. Falling back to default. Error:", error.message || "Unknown reason");
           const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
           setUserPosition(null);
           setSearchPosition(defaultPosition);
           setMapCenter(defaultPosition);
           setStatusMessage('Could not get your location. Showing results for India.');
           setCurrentSearchTerm('India');
-          isInitialSearchDone.current = true;
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
         const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
@@ -80,7 +72,6 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         setMapCenter(defaultPosition);
         setStatusMessage('Geolocation is not supported by your browser.');
         setCurrentSearchTerm('India');
-        isInitialSearchDone.current = true;
     }
   }, [map]);
 
@@ -205,7 +196,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1">
+      <div className="flex-grow">
         <ParkingMap
           parkingLots={parkingLots}
           onSelectLot={handleSelectLot}
