@@ -123,7 +123,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
       }
       onSearchHandled(); // Reset the trigger
     }
-  }, [isNearbySearch, userPosition]);
+  }, [isNearbySearch, userPosition, onSearchHandled]);
   
   // Effect to pan the map
   useEffect(() => {
@@ -223,8 +223,8 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-grow">
+    <div className="flex h-full flex-col">
+      <div className="flex-1">
         <ParkingMap
           parkingLots={parkingLots}
           onSelectLot={handleSelectLot}
@@ -235,7 +235,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           onIdle={handleMapIdle}
         />
       </div>
-      <div className="flex-shrink-0 h-[40%] overflow-y-auto">
+      <div className="h-2/5 flex-shrink-0">
         <ScrollArea className="h-full w-full">
           <div className="p-4">
             <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
@@ -304,3 +304,5 @@ export default function MapContainer({ searchTerm, isNearbySearch, onSearchHandl
     </APIProvider>
   )
 }
+
+    
