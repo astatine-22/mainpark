@@ -138,8 +138,8 @@ function ParkingFinder() {
   );
   
   return (
-    <div className="flex h-screen w-full flex-col md:flex-row">
-        <div className="h-[60vh] w-full md:h-full md:w-1/2 lg:w-2/3">
+    <div className="flex h-screen w-full flex-col">
+        <div className="h-[60vh] w-full">
           <ParkingMap
             parkingLots={filteredLots}
             onSelectLot={handleSelectLot}
@@ -148,8 +148,8 @@ function ParkingFinder() {
             userPosition={userPosition}
           />
         </div>
-        <aside className="h-[40vh] w-full md:h-full md:w-1/2 lg:w-1/3">
-           <Card className="flex h-full flex-col rounded-none border-t md:border-l md:border-t-0">
+        <aside className="h-[40vh] w-full flex-grow">
+           <Card className="flex h-full flex-col rounded-none border-t">
             <CardHeader>
                 <CardTitle>Nearby Parking</CardTitle>
                 <div className="relative">
