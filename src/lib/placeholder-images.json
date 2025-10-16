@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "parking-1",
+      "description": "A multi-level concrete parking garage with clear markings.",
+      "imageUrl": "https://picsum.photos/seed/parking1/400/300",
+      "imageHint": "parking garage"
+    },
+    {
+      "id": "parking-2",
+      "description": "An outdoor parking lot next to a modern shopping mall.",
+      "imageUrl": "https://picsum.photos/seed/parking2/400/300",
+      "imageHint": "outdoor parking"
+    },
+    {
+      "id": "parking-3",
+      "description": "An underground parking facility with bright lighting.",
+      "imageUrl": "https://picsum.photos/seed/parking3/400/300",
+      "imageHint": "underground parking"
+    },
+    {
+      "id": "parking-4",
+      "description": "A street-level parking area in a busy city district.",
+      "imageUrl": "https://picsum.photos/seed/parking4/400/300",
+      "imageHint": "street parking"
+    },
+    {
+      "id": "user-avatar",
+      "description": "A placeholder avatar for a user.",
+      "imageUrl": "https://picsum.photos/seed/avatar1/100/100",
+      "imageHint": "person portrait"
+    }
+  ]
 }
