@@ -31,6 +31,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const isInitialSearchDone = useRef(false);
 
   useEffect(() => {
     if (map) {
@@ -43,10 +44,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     }
   }, [map]);
 
-  // Effect to get initial location and set default search
+  // Effect for getting initial location and triggering the first search
   useEffect(() => {
-    // This effect should only run once to get the initial location
-    if (userPosition || searchPosition) return;
+    if (isInitialSearchDone.current || !map) return;
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -56,17 +56,20 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
-          setSearchPosition(newPosition); // Trigger initial search
+          setSearchPosition(newPosition);
           setMapCenter(newPosition);
           setCurrentSearchTerm('your location');
+          isInitialSearchDone.current = true;
         },
         (error) => {
           console.error("Error getting user location:", error);
           const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
+          setUserPosition(null);
           setSearchPosition(defaultPosition);
           setMapCenter(defaultPosition);
-          setStatusMessage('Could not get your location. Please allow location access or search for a location.');
+          setStatusMessage('Could not get your location. Showing results for India.');
           setCurrentSearchTerm('India');
+          isInitialSearchDone.current = true;
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
@@ -76,9 +79,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         setMapCenter(defaultPosition);
         setStatusMessage('Geolocation is not supported by your browser.');
         setCurrentSearchTerm('India');
+        isInitialSearchDone.current = true;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array to ensure it runs only once on mount
+  }, [map]);
 
   // Effect to watch for live location updates for the blue dot
   useEffect(() => {
@@ -177,9 +180,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           setStatusMessage('No paid parking lots found in this area.');
         }
       } else {
+        console.error('Places API search failed:', status);
         setParkingLots([]);
         setStatusMessage('No paid parking lots found in this area.');
-        console.error('Places API search failed:', status);
       }
       setLoading(false);
     });
