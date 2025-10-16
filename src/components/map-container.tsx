@@ -23,7 +23,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [searchPosition, setSearchPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [statusMessage, setStatusMessage] = useState('Enter a location or allow location access to find parking.');
+  const [statusMessage, setStatusMessage] = useState('Finding nearby parking...');
   const [currentSearchTerm, setCurrentSearchTerm] = useState('your location');
 
   const map = useMap();
@@ -41,41 +41,42 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     }
   }, [map]);
 
-  // Effect for watching user's current location
+  // Effect to get initial location and set default search
   useEffect(() => {
-    let watchId: number;
     if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
+      navigator.geolocation.getCurrentPosition(
         (position) => {
           const newPosition = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
-          // On first load, if we don't have a search position yet, use user's location.
-          if (!searchPosition) {
-            setSearchPosition(newPosition);
-          }
+          setSearchPosition(newPosition); // Trigger initial search
         },
         (error) => {
           console.error("Error getting user location:", error);
-          if (!searchPosition) {
-            setLoading(false);
-            setStatusMessage('Could not get your location. Please allow location access or search for a location.');
-          }
+          setLoading(false);
+          setStatusMessage('Could not get your location. Please allow location access or search for a location.');
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-       if (!searchPosition) {
-         setLoading(false);
-         setStatusMessage('Geolocation is not supported by your browser.');
-       }
+      setLoading(false);
+      setStatusMessage('Geolocation is not supported by your browser.');
     }
+
+    // Watch for live location updates for the blue dot
+    const watchId = navigator.geolocation.watchPosition((position) => {
+      setUserPosition({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+    });
+
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [searchPosition]); // Rerun if searchPosition changes to avoid setting it multiple times
+  }, []); // Run only once on mount
 
   // Effect for handling manual text search
   useEffect(() => {
@@ -109,7 +110,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
       }
       onSearchHandled(); // Reset the trigger
     }
-  }, [isNearbySearch, userPosition]);
+  }, [isNearbySearch, userPosition, onSearchHandled]);
   
   // Effect to pan the map
   useEffect(() => {
