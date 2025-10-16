@@ -33,6 +33,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const isInitialSearchDone = useRef(false);
 
+  // Effect to initialize Google Maps services
   useEffect(() => {
     if (map) {
       if (!placesServiceRef.current) {
@@ -62,7 +63,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           isInitialSearchDone.current = true;
         },
         (error) => {
-          console.error("Error getting user location:", error);
+          console.warn("Could not get user location. Falling back to default. Error:", error.message);
           const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
           setUserPosition(null);
           setSearchPosition(defaultPosition);
