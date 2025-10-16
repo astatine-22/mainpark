@@ -54,12 +54,13 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
         },
         (error) => {
           console.error("Error getting user location:", error);
-          setLoading(false);
+          // If user denies location, we don't set a search position initially
+          if (!searchPosition) setLoading(false);
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-      setLoading(false);
+       if (!searchPosition) setLoading(false);
     }
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
@@ -95,7 +96,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
     const placesService = placesServiceRef.current;
     const request: google.maps.places.PlaceSearchRequest = {
       location: searchPosition,
-      radius: 5000,
+      radius: 1500,
       type: 'parking',
       keyword: 'pay parking'
     };
@@ -135,6 +136,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
     setSelectedLot(lot);
     if(map) {
       map.panTo(lot.position);
+      map.setZoom(15);
     }
   };
 
@@ -145,7 +147,7 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
 
   return (
     <div className="flex h-full w-full flex-col">
-        <div className="h-full w-full relative">
+        <div className="h-[60vh] w-full">
           <ParkingMap
             parkingLots={parkingLots}
             onSelectLot={handleSelectLot}
@@ -154,34 +156,40 @@ function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
             userPosition={userPosition}
             searchPosition={searchPosition}
           />
-        <div className="absolute bottom-0 left-0 right-0 h-[40vh] w-full bg-transparent pointer-events-none">
-          <div className="h-full w-full overflow-x-auto p-4 flex gap-4 pointer-events-auto">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-80">
-                  <Skeleton className="h-full w-full" />
-                </div>
-              ))
-            ) : parkingLots.length > 0 ? (
-              parkingLots.map((lot) => (
-                <div key={lot.id} className="w-80 h-full flex-shrink-0">
-                  <ParkingListItem
-                    lot={lot}
-                    onSelect={() => handleSelectLot(lot)}
-                    onBook={() => handleOpenBooking(lot)}
-                    isSelected={selectedLot?.id === lot.id}
-                  />
-                </div>
-              ))
-            ) : (
-              <Card className="w-full">
-                <CardContent className="flex items-center justify-center h-full">
-                  <p className="py-8 text-center text-muted-foreground">{searchPosition ? 'No paid parking lots found nearby.' : 'Getting your location to find nearby parking...'}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         </div>
+        <div className="h-[40vh] w-full">
+          <ScrollArea className="h-full w-full">
+            <div className="p-4">
+              <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
+                  {loading ? 'Finding parking...' : `Parking Found Near ${searchTerm || 'You'}`}
+              </h2>
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-48 w-full" />
+                  ))}
+                </div>
+              ) : parkingLots.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {parkingLots.map((lot) => (
+                    <ParkingListItem
+                      key={lot.id}
+                      lot={lot}
+                      onSelect={() => handleSelectLot(lot)}
+                      onBook={() => handleOpenBooking(lot)}
+                      isSelected={selectedLot?.id === lot.id}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="w-full col-span-full">
+                  <CardContent className="flex items-center justify-center h-full">
+                    <p className="py-8 text-center text-muted-foreground">{searchPosition ? 'No paid parking lots found nearby.' : 'Enter a location or allow location access to find parking.'}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </ScrollArea>
         </div>
         {selectedLot && (
           <BookingSheet
