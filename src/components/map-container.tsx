@@ -178,6 +178,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
       } else {
         setParkingLots([]);
         setStatusMessage('No paid parking lots found in this area.');
+        console.error('Places API search failed:', status);
       }
       setLoading(false);
     });
