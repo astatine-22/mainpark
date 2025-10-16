@@ -28,36 +28,37 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
     <Card
       onClick={onSelect}
       className={cn(
-        'cursor-pointer transition-all duration-200 hover:shadow-md',
+        'cursor-pointer transition-all duration-200 hover:shadow-md h-full flex flex-col',
         isSelected ? 'ring-2 ring-primary shadow-lg' : 'ring-0'
       )}
     >
-      <CardContent className="p-3">
-        <div className="flex gap-4">
-          <div className="relative h-24 w-24 flex-shrink-0">
-            <Image
-              src={lot.image.url}
-              alt={lot.name}
-              fill
-              className="rounded-md object-cover"
-              data-ai-hint={lot.image.hint}
-            />
-             <div className="absolute top-1 right-1 flex items-center bg-background/80 rounded-full px-2 py-0.5 text-xs font-semibold">
-                <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-400" />
-                {lot.rating}
-            </div>
-          </div>
-          <div className="flex-grow">
-            <h3 className="font-headline font-semibold text-base leading-tight">{lot.name}</h3>
-            <p className="text-xs text-muted-foreground truncate">{lot.address}</p>
-            <div className="flex items-center justify-between mt-2">
+      <div className="relative h-40 w-full flex-shrink-0">
+        <Image
+          src={lot.image.url}
+          alt={lot.name}
+          fill
+          className="rounded-t-md object-cover"
+          data-ai-hint={lot.image.hint}
+        />
+         <div className="absolute top-2 right-2 flex items-center bg-background/80 rounded-full px-2 py-0.5 text-xs font-semibold">
+            <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-400" />
+            {lot.rating}
+        </div>
+      </div>
+      <CardContent className="p-3 flex-grow flex flex-col justify-between">
+        <div>
+          <h3 className="font-headline font-semibold text-base leading-tight">{lot.name}</h3>
+          <p className="text-xs text-muted-foreground truncate">{lot.address}</p>
+        </div>
+        <div className="space-y-2 mt-2">
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <div className={cn('w-3 h-3 rounded-full', statusColor)}></div>
                     <p className="text-sm font-semibold">{lot.availableSpots} <span className="font-normal text-muted-foreground">/ {lot.totalSpots} spots</span></p>
                 </div>
                 <p className="text-base font-semibold">₹{lot.pricePerHour}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
             </div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps/dir/?api=1&destination=${lot.position.lat},${lot.position.lng}`, '_blank'); }}>
                     <Navigation/>
                 </Button>
@@ -65,7 +66,6 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
                     <Zap className="mr-2"/> Book Now
                 </Button>
             </div>
-          </div>
         </div>
       </CardContent>
     </Card>

@@ -7,10 +7,18 @@ import { Input } from './ui/input';
 interface HeaderProps {
   searchTerm?: string;
   onSearchTermChange?: (term: string) => void;
+  onSearchSubmit?: () => void;
   showSearch?: boolean;
 }
 
-export default function Header({ searchTerm, onSearchTermChange, showSearch }: HeaderProps) {
+export default function Header({ searchTerm, onSearchTermChange, onSearchSubmit, showSearch }: HeaderProps) {
+  
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      onSearchSubmit?.();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
@@ -25,10 +33,11 @@ export default function Header({ searchTerm, onSearchTermChange, showSearch }: H
               <div className="relative w-full max-w-md">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
-                      placeholder="Search parking by name or address..." 
+                      placeholder="Search any city or locality..." 
                       className="pl-8"
                       value={searchTerm}
                       onChange={(e) => onSearchTermChange?.(e.target.value)}
+                      onKeyDown={handleKeyDown}
                   />
               </div>
             )}

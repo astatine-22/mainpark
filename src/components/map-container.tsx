@@ -8,36 +8,39 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ParkingLot } from '@/lib/types';
 import { BookingSheet } from './booking-sheet';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Search } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
 interface ParkingFinderProps {
   searchTerm: string;
-  onSearchTermChange: (term: string) => void;
+  searchTrigger: number;
 }
 
-function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
+function ParkingFinder({ searchTerm, searchTrigger }: ParkingFinderProps) {
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchPosition, setSearchPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const map = useMap();
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
-  // Effect to initialize the PlacesService once the map is available
   useEffect(() => {
-    if (map && !placesServiceRef.current) {
-      placesServiceRef.current = new google.maps.places.PlacesService(map);
+    if (map) {
+      if (!placesServiceRef.current) {
+        placesServiceRef.current = new google.maps.places.PlacesService(map);
+      }
+      if (!geocoderRef.current) {
+        geocoderRef.current = new google.maps.Geocoder();
+      }
     }
   }, [map]);
-  
-  // Effect to get and watch the user's current location
+
   useEffect(() => {
     let watchId: number;
     if (navigator.geolocation) {
-      // Start watching the user's position
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const newPosition = {
@@ -45,48 +48,54 @@ function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
             lng: position.coords.longitude,
           };
           setUserPosition(newPosition);
+          if (!searchPosition) { // Only set search position if not already set by manual search
+            setSearchPosition(newPosition);
+          }
         },
         (error) => {
           console.error("Error getting user location:", error);
-          // If location access is denied or fails, stop showing the loader
           setLoading(false);
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0,
-        }
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-        // Geolocation is not supported by this browser.
-        setLoading(false);
+      setLoading(false);
     }
-
-    // Cleanup function to stop watching when the component unmounts
     return () => {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-      }
+      if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, []); // Empty dependency array means this runs only once on mount
+  }, [searchPosition]);
 
-  // This effect runs whenever the user's position changes to pan the map
   useEffect(() => {
-    if (map && userPosition) {
-        map.panTo(userPosition);
+    if (searchTrigger > 0 && searchTerm.trim() !== '' && geocoderRef.current) {
+      setLoading(true);
+      geocoderRef.current.geocode({ address: searchTerm }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const location = results[0].geometry.location;
+          const newPos = { lat: location.lat(), lng: location.lng() };
+          setSearchPosition(newPos);
+        } else {
+          console.error(`Geocode was not successful for the following reason: ${status}`);
+          setLoading(false);
+        }
+      });
+    }
+  }, [searchTrigger, searchTerm]);
+  
+  useEffect(() => {
+    if (map && searchPosition) {
+        map.panTo(searchPosition);
         map.setZoom(14);
     }
-  }, [map, userPosition]);
+  }, [map, searchPosition]);
 
-
-  // This effect runs whenever the user's position changes to search for nearby parking
   useEffect(() => {
-    if (!placesServiceRef.current || !userPosition) return;
+    if (!placesServiceRef.current || !searchPosition) return;
 
     const placesService = placesServiceRef.current;
     const request: google.maps.places.PlaceSearchRequest = {
-      location: userPosition,
-      radius: 5000, // 5km radius
+      location: searchPosition,
+      radius: 5000,
       type: 'parking',
       keyword: 'pay parking'
     };
@@ -95,7 +104,7 @@ function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
     placesService.nearbySearch(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         const fetchedLots: ParkingLot[] = results
-        .filter(place => place.geometry && place.geometry.location) // Ensure place has geometry
+        .filter(place => place.geometry && place.geometry.location)
         .map((place, index) => ({
           id: place.place_id || `p${index}`,
           name: place.name || 'Unknown Parking',
@@ -105,9 +114,9 @@ function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
             lng: place.geometry!.location!.lng(),
           },
           rating: place.rating || 4.0,
-          totalSpots: Math.floor(Math.random() * 150) + 50, // Mock data
-          availableSpots: Math.floor(Math.random() * 50), // Mock data
-          pricePerHour: Math.floor(Math.random() * 80) + 40, // Mock data
+          totalSpots: Math.floor(Math.random() * 150) + 50,
+          availableSpots: Math.floor(Math.random() * 50),
+          pricePerHour: Math.floor(Math.random() * 80) + 40,
           image: {
             url: place.photos?.[0]?.getUrl() || `https://picsum.photos/seed/parking${index}/400/300`,
             hint: 'parking garage',
@@ -120,7 +129,7 @@ function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
       }
       setLoading(false);
     });
-  }, [userPosition]); // Rerun search when userPosition changes
+  }, [searchPosition]);
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
@@ -134,60 +143,46 @@ function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
     setIsBookingSheetOpen(true);
   };
 
-  const filteredLots = parkingLots.filter(
-    (lot) =>
-      lot.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lot.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
   return (
     <div className="flex h-full w-full flex-col">
-        <div className="h-[60vh] w-full">
+        <div className="h-full w-full relative">
           <ParkingMap
-            parkingLots={filteredLots}
+            parkingLots={parkingLots}
             onSelectLot={handleSelectLot}
             onOpenBooking={handleOpenBooking}
             selectedLot={selectedLot}
             userPosition={userPosition}
+            searchPosition={searchPosition}
           />
+        <div className="absolute bottom-0 left-0 right-0 h-[40vh] w-full bg-transparent pointer-events-none">
+          <div className="h-full w-full overflow-x-auto p-4 flex gap-4 pointer-events-auto">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-80">
+                  <Skeleton className="h-full w-full" />
+                </div>
+              ))
+            ) : parkingLots.length > 0 ? (
+              parkingLots.map((lot) => (
+                <div key={lot.id} className="w-80 h-full flex-shrink-0">
+                  <ParkingListItem
+                    lot={lot}
+                    onSelect={() => handleSelectLot(lot)}
+                    onBook={() => handleOpenBooking(lot)}
+                    isSelected={selectedLot?.id === lot.id}
+                  />
+                </div>
+              ))
+            ) : (
+              <Card className="w-full">
+                <CardContent className="flex items-center justify-center h-full">
+                  <p className="py-8 text-center text-muted-foreground">{searchPosition ? 'No paid parking lots found nearby.' : 'Getting your location to find nearby parking...'}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-        <aside className="h-[40vh] w-full flex-grow">
-           <Card className="flex h-full flex-col rounded-none border-t">
-            <CardHeader>
-                <CardTitle>Nearby Parking</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-grow overflow-hidden">
-                <ScrollArea className="h-full pr-4">
-                  <div className="space-y-4">
-                    {loading ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="flex gap-4 p-3">
-                          <Skeleton className="h-24 w-24" />
-                          <div className="flex-grow space-y-2">
-                            <Skeleton className="h-5 w-3/4" />
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-8 w-1/2" />
-                          </div>
-                        </div>
-                      ))
-                    ) : filteredLots.length > 0 ? (
-                      filteredLots.map((lot) => (
-                        <ParkingListItem
-                          key={lot.id}
-                          lot={lot}
-                          onSelect={() => handleSelectLot(lot)}
-                          onBook={() => handleOpenBooking(lot)}
-                          isSelected={selectedLot?.id === lot.id}
-                        />
-                      ))
-                    ) : (
-                      <p className="py-8 text-center text-muted-foreground">{userPosition ? 'No paid parking lots found nearby.' : 'Getting your location to find nearby parking...'}</p>
-                    )}
-                  </div>
-                </ScrollArea>
-            </CardContent>
-            </Card>
-        </aside>
+        </div>
         {selectedLot && (
           <BookingSheet
             lot={selectedLot}
@@ -201,10 +196,10 @@ function ParkingFinder({ searchTerm, onSearchTermChange }: ParkingFinderProps) {
 
 interface MapContainerProps {
   searchTerm: string;
-  onSearchTermChange: (term: string) => void;
+  searchTrigger: number;
 }
 
-export default function MapContainer({ searchTerm, onSearchTermChange }: MapContainerProps) {
+export default function MapContainer({ searchTerm, searchTrigger }: MapContainerProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return (
@@ -217,8 +212,8 @@ export default function MapContainer({ searchTerm, onSearchTermChange }: MapCont
   }
 
   return (
-    <APIProvider apiKey={apiKey} libraries={['places']}>
-      <ParkingFinder searchTerm={searchTerm} onSearchTermChange={onSearchTermChange} />
+    <APIProvider apiKey={apiKey} libraries={['places', 'geocoding']}>
+      <ParkingFinder searchTerm={searchTerm} searchTrigger={searchTrigger} />
     </APIProvider>
   )
 }
