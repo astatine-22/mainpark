@@ -109,10 +109,10 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
 
   // Effect for initial load with user position
   useEffect(() => {
-    if (!searchPosition && userPosition) {
+    if (!searchTerm && userPosition) {
         setSearchPosition(userPosition);
     }
-  }, [userPosition, searchPosition]);
+  }, [userPosition, searchTerm]);
   
   // Effect to pan the map
   useEffect(() => {
@@ -183,7 +183,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
 
   return (
     <div className="flex h-full w-full flex-col">
-        <div className="h-[60vh] w-full">
+        <div className="h-[60%] w-full flex-shrink-0">
           <ParkingMap
             parkingLots={parkingLots}
             onSelectLot={handleSelectLot}
@@ -193,7 +193,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
             searchPosition={searchPosition}
           />
         </div>
-        <div className="h-[40vh] w-full">
+        <div className="flex-grow w-full overflow-y-auto">
           <ScrollArea className="h-full w-full">
             <div className="p-4">
               <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
