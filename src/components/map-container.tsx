@@ -71,7 +71,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [searchPosition]);
+  }, []);
 
   // Effect for handling manual text search
   useEffect(() => {
@@ -92,27 +92,23 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     }
   }, [searchTerm]);
 
-  // Effect for handling "Nearby" button click
+  // Effect for handling "Nearby" button click OR initial load
   useEffect(() => {
-    if (isNearbySearch) {
+    // This runs on "Nearby" click or when userPosition is first available
+    if (isNearbySearch || (userPosition && !searchPosition)) {
       if (userPosition) {
         setLoading(true);
         setCurrentSearchTerm('your location');
         setStatusMessage('Finding nearby parking...');
         setSearchPosition(userPosition);
-      } else {
+      } else if (isNearbySearch) { // Only show this if user explicitly clicks "Nearby"
         setStatusMessage('Could not get your location. Please allow location access.');
       }
-      onSearchHandled(); // Reset the trigger
+      if (isNearbySearch) {
+        onSearchHandled(); // Reset the trigger if it was a click
+      }
     }
-  }, [isNearbySearch, userPosition, onSearchHandled]);
-
-  // Effect for initial load with user position
-  useEffect(() => {
-    if (!searchTerm && userPosition && !searchPosition) {
-        setSearchPosition(userPosition);
-    }
-  }, [userPosition, searchTerm, searchPosition]);
+  }, [isNearbySearch, userPosition, searchPosition, onSearchHandled]);
   
   // Effect to pan the map
   useEffect(() => {
@@ -182,59 +178,59 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   };
 
   return (
-    <div className="flex h-full w-full flex-col">
-        <div className="h-[60%] w-full flex-shrink-0">
-          <ParkingMap
-            parkingLots={parkingLots}
-            onSelectLot={handleSelectLot}
-            onOpenBooking={handleOpenBooking}
-            selectedLot={selectedLot}
-            userPosition={userPosition}
-            searchPosition={searchPosition}
-          />
-        </div>
-        <div className="flex-grow w-full overflow-y-auto">
-          <ScrollArea className="h-full w-full">
-            <div className="p-4">
-              <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
-                  {loading ? 'Finding parking...' : `Parking Found Near ${currentSearchTerm}`}
-              </h2>
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-48 w-full" />
-                  ))}
-                </div>
-              ) : parkingLots.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {parkingLots.map((lot) => (
-                    <ParkingListItem
-                      key={lot.id}
-                      lot={lot}
-                      onSelect={() => handleSelectLot(lot)}
-                      onBook={() => handleOpenBooking(lot)}
-                      isSelected={selectedLot?.id === lot.id}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Card className="w-full col-span-full">
-                  <CardContent className="flex items-center justify-center h-full">
-                    <p className="py-8 text-center text-muted-foreground">{statusMessage}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-        {selectedLot && (
-          <BookingSheet
-            lot={selectedLot}
-            isOpen={isBookingSheetOpen}
-            onOpenChange={setIsBookingSheetOpen}
-          />
-        )}
+    <div className="h-full w-full grid grid-rows-[60%,40%]">
+      <div className="w-full h-full">
+        <ParkingMap
+          parkingLots={parkingLots}
+          onSelectLot={handleSelectLot}
+          onOpenBooking={handleOpenBooking}
+          selectedLot={selectedLot}
+          userPosition={userPosition}
+          searchPosition={searchPosition}
+        />
       </div>
+      <div className="w-full h-full overflow-y-auto">
+        <ScrollArea className="h-full w-full">
+          <div className="p-4">
+            <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">
+              {loading ? 'Finding parking...' : `Parking Found Near ${currentSearchTerm}`}
+            </h2>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-48 w-full" />
+                ))}
+              </div>
+            ) : parkingLots.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {parkingLots.map((lot) => (
+                  <ParkingListItem
+                    key={lot.id}
+                    lot={lot}
+                    onSelect={() => handleSelectLot(lot)}
+                    onBook={() => handleOpenBooking(lot)}
+                    isSelected={selectedLot?.id === lot.id}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="w-full col-span-full">
+                <CardContent className="flex items-center justify-center h-full">
+                  <p className="py-8 text-center text-muted-foreground">{statusMessage}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+      {selectedLot && (
+        <BookingSheet
+          lot={selectedLot}
+          isOpen={isBookingSheetOpen}
+          onOpenChange={setIsBookingSheetOpen}
+        />
+      )}
+    </div>
   );
 }
 
