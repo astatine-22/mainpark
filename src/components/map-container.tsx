@@ -109,10 +109,10 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
 
   // Effect for initial load with user position
   useEffect(() => {
-    if (!searchTerm && userPosition) {
+    if (!searchTerm && userPosition && !searchPosition) {
         setSearchPosition(userPosition);
     }
-  }, [userPosition, searchTerm]);
+  }, [userPosition, searchTerm, searchPosition]);
   
   // Effect to pan the map
   useEffect(() => {
