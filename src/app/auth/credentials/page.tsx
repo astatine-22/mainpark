@@ -95,6 +95,8 @@ function CredentialsForm() {
         let description = 'Could not log in. Please try again.';
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           description = 'Invalid credentials. Please check your email and password.';
+        } else if (error.code === 'auth/too-many-requests') {
+            description = 'Access temporarily disabled due to too many failed login attempts. Please try again later.';
         }
         toast({
           variant: 'destructive',
