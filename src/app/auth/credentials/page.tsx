@@ -147,7 +147,7 @@ function CredentialsForm() {
           description = 'An account with this email address already exists.';
         } else if (error.code === 'auth/too-many-requests') {
           description =
-            'Account creation is temporarily disabled due to too many attempts. Please try again later.';
+            'Access temporarily disabled due to too many attempts. Please try again later.';
         } else {
           description = error.message || description;
         }
