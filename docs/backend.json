@@ -1,0 +1,340 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the ParkSmart application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "savedPaymentMethods": {
+          "type": "array",
+          "description": "Array of saved payment method IDs. (Relationship: User 1:N PaymentMethod)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bookingIds": {
+          "type": "array",
+          "description": "References to Bookings. (Relationship: User 1:N Booking)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "phoneNumber"
+      ]
+    },
+    "ParkingLot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ParkingLot",
+      "type": "object",
+      "description": "Represents a parking lot location.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the parking lot.",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the parking lot (e.g., 'Central Plaza Parking')."
+        },
+        "address": {
+          "type": "string",
+          "description": "The address of the parking lot."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate of the parking lot."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate of the parking lot."
+        },
+        "googlePlaceId": {
+          "type": "string",
+          "description": "The Google Place ID of the parking lot."
+        },
+        "googleRating": {
+          "type": "number",
+          "description": "The rating of the parking lot from Google Reviews."
+        },
+        "totalSpots": {
+          "type": "number",
+          "description": "The total number of parking spots in the lot."
+        },
+        "availableSpots": {
+          "type": "number",
+          "description": "The number of currently available parking spots."
+        },
+        "hourlyRate": {
+          "type": "number",
+          "description": "The hourly rate for parking."
+        },
+        "dailyRate": {
+          "type": "number",
+          "description": "The daily rate for parking."
+        },
+        "photoUrls": {
+          "type": "array",
+          "description": "URLs of photos of the parking lot.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "managerId": {
+          "type": "string",
+          "description": "Reference to the ParkingManager. (Relationship: ParkingLot 1:1 ParkingManager)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address",
+        "latitude",
+        "longitude",
+        "googlePlaceId",
+        "totalSpots",
+        "availableSpots",
+        "hourlyRate"
+      ]
+    },
+    "Booking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Booking",
+      "type": "object",
+      "description": "Represents a parking booking.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the booking.",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made the booking. (Relationship: User 1:N Booking)"
+        },
+        "parkingLotId": {
+          "type": "string",
+          "description": "Reference to the ParkingLot where the booking is. (Relationship: ParkingLot 1:N Booking)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The start time of the booking.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The end time of the booking.",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "number",
+          "description": "The duration of the booking in hours."
+        },
+        "pricePaid": {
+          "type": "number",
+          "description": "The price paid for the booking."
+        },
+        "qrCode": {
+          "type": "string",
+          "description": "The QR code associated with the booking."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the booking (e.g., 'active', 'completed', 'cancelled')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "parkingLotId",
+        "startTime",
+        "endTime",
+        "duration",
+        "pricePaid",
+        "qrCode",
+        "status"
+      ]
+    },
+    "ParkingManager": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ParkingManager",
+      "type": "object",
+      "description": "Represents a parking manager.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the parking manager.",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the parking manager."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the parking manager.",
+          "format": "email"
+        },
+        "parkingLotId": {
+          "type": "string",
+          "description": "Reference to the ParkingLot managed. (Relationship: ParkingLot 1:1 ParkingManager)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "PaymentMethod": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentMethod",
+      "type": "object",
+      "description": "Represents a payment method.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payment method.",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User that owns this payment method. (Relationship: User 1:N PaymentMethod)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of payment method (e.g., 'credit card', 'UPI', 'wallet')."
+        },
+        "details": {
+          "type": "string",
+          "description": "Encrypted details of the payment method."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "details"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Includes standard user information. This path is used for private user data and is secured by requiring authentication and ensuring the `userId` matches the authenticated user's UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to their Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/parking_lots/{parkingLotId}",
+        "definition": {
+          "entityName": "ParkingLot",
+          "schema": {
+            "$ref": "#/backend/entities/ParkingLot"
+          },
+          "description": "Stores parking lot information. Publicly accessible for read operations, but write operations are restricted to authorized parking managers.",
+          "params": [
+            {
+              "name": "parkingLotId",
+              "description": "The unique identifier for the parking lot."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/bookings/{bookingId}",
+        "definition": {
+          "entityName": "Booking",
+          "schema": {
+            "$ref": "#/backend/entities/Booking"
+          },
+          "description": "Stores booking information. Includes denormalized `userId` and `parkingLotId` for authorization independence.",
+          "params": [
+            {
+              "name": "bookingId",
+              "description": "The unique identifier for the booking."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/parking_managers/{parkingManagerId}",
+        "definition": {
+          "entityName": "ParkingManager",
+          "schema": {
+            "$ref": "#/backend/entities/ParkingManager"
+          },
+          "description": "Stores parking manager profiles.  Accessible only to authenticated parking managers.",
+          "params": [
+            {
+              "name": "parkingManagerId",
+              "description": "The unique identifier for the parking manager."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/payment_methods/{paymentMethodId}",
+        "definition": {
+          "entityName": "PaymentMethod",
+          "schema": {
+            "$ref": "#/backend/entities/PaymentMethod"
+          },
+          "description": "Stores payment methods for a user. Accessible only to the authenticated user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to their Firebase Auth UID."
+            },
+            {
+              "name": "paymentMethodId",
+              "description": "The unique identifier for the payment method."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure prioritizes authorization independence and clarity for ParkSmart. User data is stored under `/users/{userId}`.  ParkingLots are stored under the `/parking_lots/{parkingLotId}` collection. Bookings are stored under `/bookings/{bookingId}`, which includes denormalized `userId` and `parkingLotId` to enable performant queries and enforce security rules without complex `get()` calls. ParkingManagers are stored under `/parking_managers/{parkingManagerId}`. PaymentMethods are stored under `/users/{userId}/payment_methods/{paymentMethodId}`. \n\nThis structure ensures authorization independence. For example, a booking document contains the `userId` and `parkingLotId`. Rules can validate that the user in `request.auth.uid` matches the `userId` in the document, or that a `ParkingManager` can only modify a `ParkingLot` they own by checking if `parkingLot.managerId == request.auth.uid`.\n\nQAPs are supported as follows:\n\n*   Listing all ParkingLots: The `/parking_lots` collection enables listing all parking lots. Security rules can limit creation and modification based on user roles (e.g., only admins can create parking lots).\n*   Listing Bookings for a User: The `/bookings` collection, with the denormalized `userId`, allows efficient querying of bookings for a specific user. Security rules can ensure that users can only access their own bookings.\n*   Listing PaymentMethods for a User: The `/users/{userId}/payment_methods` collection ensures that only the authenticated user can access their payment methods."
+  }
+}
