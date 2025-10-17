@@ -15,20 +15,21 @@ export type ParkingLot = {
     hint: string;
   };
   distance?: number;
+  managerId: string;
 };
 
+// This type uses Firestore's Timestamp format for dates
+// It will be converted to JS Date objects when fetched.
 export type Booking = {
   id: string;
-  parkingLot: Pick<ParkingLot, 'name' | 'address'>;
-  user: {
-    name: string;
-    avatarUrl: string;
-  };
-  startTime: Date;
-  endTime: Date;
-  amount: number;
+  parkingLotId: string;
+  userId: string;
+  startTime: any; // Firestore Timestamp
+  endTime: any; // Firestore Timestamp
+  pricePaid: number;
   status: 'active' | 'completed' | 'cancelled';
 };
+
 
 export type UserProfile = {
   uid: string;

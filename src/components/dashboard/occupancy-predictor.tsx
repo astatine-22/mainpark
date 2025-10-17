@@ -21,15 +21,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { mockParkingLots } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import type { ParkingLot } from '@/lib/types';
 
 const formSchema = z.object({
   parkingLotId: z.string().min(1, 'Please select a parking lot.'),
@@ -42,7 +46,11 @@ type PredictionResult = {
   reason: string;
 };
 
-export default function OccupancyPredictor() {
+interface OccupancyPredictorProps {
+    parkingLots: ParkingLot[];
+}
+
+export default function OccupancyPredictor({ parkingLots }: OccupancyPredictorProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
 
@@ -90,14 +98,15 @@ export default function OccupancyPredictor() {
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  disabled={parkingLots.length === 0}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a parking lot" />
+                      <SelectValue placeholder={parkingLots.length > 0 ? "Select a parking lot" : "No parking lots found"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {mockParkingLots.map((lot) => (
+                    {parkingLots.map((lot) => (
                       <SelectItem key={lot.id} value={lot.id}>
                         {lot.name}
                       </SelectItem>
@@ -161,7 +170,7 @@ export default function OccupancyPredictor() {
               )}
             />
           </div>
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button type="submit" disabled={loading || parkingLots.length === 0} className="w-full">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Predict Occupancy
           </Button>
@@ -169,22 +178,24 @@ export default function OccupancyPredictor() {
       </Form>
 
       {result && (
-        <Card className="mt-4 bg-secondary">
+        <Card className="mt-4 bg-secondary/50">
           <CardContent className="pt-6">
             <div className="space-y-4">
-                <div>
-                    <div className="flex justify-between mb-1">
-                        <p className="font-semibold">Predicted Occupancy</p>
-                        <p className="font-bold text-primary">{result.predictedOccupancy.toFixed(0)}%</p>
-                    </div>
-                    <Progress value={result.predictedOccupancy} />
+              <div>
+                <div className="flex justify-between mb-1">
+                  <p className="font-semibold">Predicted Occupancy</p>
+                  <p className="font-bold text-primary">
+                    {result.predictedOccupancy.toFixed(0)}%
+                  </p>
                 </div>
-                <div>
-                    <p className="text-sm font-semibold mb-1">Reasoning:</p>
-                    <p className="text-sm text-muted-foreground">
-                        {result.reason}
-                    </p>
-                </div>
+                <Progress value={result.predictedOccupancy} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1">Reasoning:</p>
+                <p className="text-sm text-muted-foreground">
+                  {result.reason}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,33 +1,55 @@
 'use client';
-
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import type { Booking } from '@/lib/types';
+import { useMemo } from 'react';
 
-const data = [
-  { time: '12 AM', occupancy: 186 },
-  { time: '2 AM', occupancy: 150 },
-  { time: '4 AM', occupancy: 120 },
-  { time: '6 AM', occupancy: 220 },
-  { time: '8 AM', occupancy: 490 },
-  { time: '10 AM', occupancy: 520 },
-  { time: '12 PM', occupancy: 650 },
-  { time: '2 PM', occupancy: 700 },
-  { time: '4 PM', occupancy: 750 },
-  { time: '6 PM', occupancy: 890 },
-  { time: '8 PM', occupancy: 820 },
-  { time: '10 PM', occupancy: 450 },
-];
+interface OccupancyChartProps {
+    bookings: Booking[];
+}
 
 const chartConfig = {
   occupancy: {
-    label: "Occupancy",
-    color: "hsl(var(--primary))",
+    label: 'Bookings',
+    color: 'hsl(var(--primary))',
   },
 };
 
-export default function OccupancyChart() {
+export default function OccupancyChart({ bookings }: OccupancyChartProps) {
+  const data = useMemo(() => {
+    const hourlyData: { [hour: number]: number } = {};
+    for (let i = 0; i < 24; i++) {
+        hourlyData[i] = 0;
+    }
+
+    bookings.forEach((booking) => {
+      const startHour = new Date(booking.startTime).getHours();
+      hourlyData[startHour]++;
+    });
+
+    return Object.entries(hourlyData).map(([hour, count]) => {
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayHour = h % 12 === 0 ? 12 : h % 12;
+        return {
+            time: `${displayHour} ${ampm}`,
+            occupancy: count
+        }
+    }).sort((a, b) => parseInt(a.time) - parseInt(b.time)); // Basic sort, might need refinement
+  }, [bookings]);
+
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-[350px]">
+    <ChartContainer
+      config={chartConfig}
+      className="min-h-[200px] w-full h-[350px]"
+    >
       <BarChart accessibilityLayer data={data}>
         <XAxis
           dataKey="time"
@@ -42,9 +64,17 @@ export default function OccupancyChart() {
           tickLine={false}
           axisLine={false}
           tickFormatter={(value) => `${value}`}
+          allowDecimals={false}
         />
-         <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
-        <Bar dataKey="occupancy" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+        <Tooltip
+          cursor={{ fill: 'hsl(var(--muted))' }}
+          content={<ChartTooltipContent />}
+        />
+        <Bar
+          dataKey="occupancy"
+          fill="hsl(var(--primary))"
+          radius={[8, 8, 0, 0]}
+        />
       </BarChart>
     </ChartContainer>
   );
