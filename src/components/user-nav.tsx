@@ -15,9 +15,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
+import { LogIn } from 'lucide-react';
 
 export function UserNav() {
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
+  const isLoggedIn = false; // This would be dynamic in a real app
+
+  if (!isLoggedIn) {
+    return (
+       <Link href="/login" passHref>
+        <Button variant="outline">
+          <LogIn className="mr-2" />
+          Login
+        </Button>
+      </Link>
+    )
+  }
 
   return (
     <DropdownMenu>

@@ -29,6 +29,18 @@
       "description": "A placeholder avatar for a user.",
       "imageUrl": "https://picsum.photos/seed/avatar1/100/100",
       "imageHint": "person portrait"
+    },
+    {
+      "id": "driver-role",
+      "description": "A person driving a car, seen from behind the wheel.",
+      "imageUrl": "https://picsum.photos/seed/driver-role/600/800",
+      "imageHint": "driving car"
+    },
+    {
+      "id": "owner-role",
+      "description": "A modern building with a large parking garage.",
+      "imageUrl": "https://picsum.photos/seed/owner-role/600/800",
+      "imageHint": "modern building"
     }
   ]
 }
