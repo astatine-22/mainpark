@@ -9,6 +9,9 @@ import type { ParkingLot } from '@/lib/types';
 import { BookingSheet } from './booking-sheet';
 import { Card, CardContent } from './ui/card';
 import { Skeleton } from './ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ParkingFinderProps {
   searchTerm: string;
@@ -16,25 +19,43 @@ interface ParkingFinderProps {
   onSearchHandled: () => void;
 }
 
-function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingFinderProps) {
+function ParkingFinder({
+  searchTerm,
+  isNearbySearch,
+  onSearchHandled,
+}: ParkingFinderProps) {
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
-  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [searchPosition, setSearchPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [userPosition, setUserPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [searchPosition, setSearchPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [statusMessage, setStatusMessage] = useState('Finding nearby parking...');
+  const [statusMessage, setStatusMessage] = useState(
+    'Finding nearby parking...'
+  );
   const [currentSearchTerm, setCurrentSearchTerm] = useState('your location');
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const [isListExpanded, setIsListExpanded] = useState(false);
 
   const map = useMap();
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(
+    null
+  );
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
   // Effect for initialization and initial search
   useEffect(() => {
     if (!map) return;
-    if (!placesServiceRef.current) placesServiceRef.current = new google.maps.places.PlacesService(map);
+    if (!placesServiceRef.current)
+      placesServiceRef.current = new google.maps.places.PlacesService(map);
     if (!geocoderRef.current) geocoderRef.current = new google.maps.Geocoder();
 
     navigator.geolocation.getCurrentPosition(
@@ -44,14 +65,18 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           lng: position.coords.longitude,
         };
         setUserPosition(newPosition);
-        if (!searchPosition) { // Only set search position if it's the initial load
+        if (!searchPosition) {
+          // Only set search position if it's the initial load
           setSearchPosition(newPosition);
           setMapCenter(newPosition);
           setCurrentSearchTerm('your location');
         }
       },
       (err) => {
-        console.warn("Could not get user location. Falling back to default. Error:", err.message || "Unknown reason");
+        console.warn(
+          'Could not get user location. Falling back to default. Error:',
+          err.message || 'Unknown reason'
+        );
         const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
         setUserPosition(null);
         if (!searchPosition) {
@@ -64,7 +89,6 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   }, [map]);
-
 
   // Effect to watch for live location updates for the blue dot
   useEffect(() => {
@@ -93,7 +117,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           setSearchPosition(newPosition);
           setMapCenter(newPosition);
         } else {
-          console.error(`Geocode was not successful for the following reason: ${status}`);
+          console.error(
+            `Geocode was not successful for the following reason: ${status}`
+          );
           setLoading(false);
           setStatusMessage(`Could not find location: ${searchTerm}`);
         }
@@ -111,17 +137,19 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
         setSearchPosition(userPosition);
         setMapCenter(userPosition);
       } else {
-        setStatusMessage('Could not get your location. Please allow location access.');
+        setStatusMessage(
+          'Could not get your location. Please allow location access.'
+        );
       }
       onSearchHandled(); // Reset the trigger
     }
   }, [isNearbySearch, userPosition, onSearchHandled]);
-  
+
   // Effect to pan the map
   useEffect(() => {
     if (map && mapCenter) {
-        map.panTo(mapCenter);
-        map.setZoom(14);
+      map.panTo(mapCenter);
+      map.setZoom(14);
     }
   }, [map, mapCenter]);
 
@@ -134,30 +162,32 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     const request: google.maps.places.PlaceSearchRequest = {
       location: searchPosition,
       radius: 1500,
-      keyword: 'pay parking'
+      keyword: 'pay parking',
     };
 
     placesService.nearbySearch(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         const fetchedLots: ParkingLot[] = results
-        .filter(place => place.geometry && place.geometry.location)
-        .map((place, index) => ({
-          id: place.place_id || `p${index}`,
-          name: place.name || 'Unknown Parking',
-          address: place.vicinity || 'Address not available',
-          position: {
-            lat: place.geometry!.location!.lat(),
-            lng: place.geometry!.location!.lng(),
-          },
-          rating: place.rating || 4.0,
-          totalSpots: Math.floor(Math.random() * 150) + 50,
-          availableSpots: Math.floor(Math.random() * 50),
-          pricePerHour: Math.floor(Math.random() * 80) + 40,
-          image: {
-            url: place.photos?.[0]?.getUrl() || `https://picsum.photos/seed/parking${index}/400/300`,
-            hint: 'parking garage',
-          },
-        }));
+          .filter((place) => place.geometry && place.geometry.location)
+          .map((place, index) => ({
+            id: place.place_id || `p${index}`,
+            name: place.name || 'Unknown Parking',
+            address: place.vicinity || 'Address not available',
+            position: {
+              lat: place.geometry!.location!.lat(),
+              lng: place.geometry!.location!.lng(),
+            },
+            rating: place.rating || 4.0,
+            totalSpots: Math.floor(Math.random() * 150) + 50,
+            availableSpots: Math.floor(Math.random() * 50),
+            pricePerHour: Math.floor(Math.random() * 80) + 40,
+            image: {
+              url:
+                place.photos?.[0]?.getUrl() ||
+                `https://picsum.photos/seed/parking${index}/400/300`,
+              hint: 'parking garage',
+            },
+          }));
         setParkingLots(fetchedLots);
         if (fetchedLots.length === 0) {
           setStatusMessage('No paid parking lots found in this area.');
@@ -171,10 +201,9 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
     });
   }, [searchPosition]);
 
-
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
-    if(map) {
+    if (map) {
       map.panTo(lot.position);
       map.setZoom(15);
     }
@@ -186,7 +215,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
   };
 
   return (
-    <>
+    <div className="relative w-full h-full">
       <div className="absolute inset-0">
         <ParkingMap
           parkingLots={parkingLots}
@@ -197,39 +226,56 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           center={mapCenter}
         />
       </div>
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-4 h-2/5">
-        <ScrollArea className="h-full w-full">
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold tracking-tight font-headline text-background bg-foreground/70 p-2 rounded-md backdrop-blur-sm">
-              {loading ? 'Finding parking...' : `Parking Found Near ${currentSearchTerm}`}
-            </h2>
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-52 w-full" />
-                ))}
-              </div>
-            ) : parkingLots.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {parkingLots.map((lot) => (
-                  <ParkingListItem
-                    key={lot.id}
-                    lot={lot}
-                    onSelect={() => handleSelectLot(lot)}
-                    onBook={() => handleOpenBooking(lot)}
-                    isSelected={selectedLot?.id === lot.id}
-                  />
-                ))}
-              </div>
-            ) : (
-               <Card className="w-full col-span-full">
-                <CardContent className="flex items-center justify-center h-full">
-                  <p className="py-8 text-center text-muted-foreground">{statusMessage}</p>
-                </CardContent>
-              </Card>
-            )}
+
+      <div
+        className={cn(
+          'absolute bottom-0 left-0 right-0 z-10 p-4 transition-all duration-500 ease-in-out',
+          isListExpanded ? 'h-4/5' : 'h-2/5'
+        )}
+      >
+        <div className="h-full w-full bg-background/80 backdrop-blur-sm rounded-t-lg shadow-2xl flex flex-col">
+          <div className="flex-shrink-0 text-center py-2" onClick={() => setIsListExpanded(!isListExpanded)}>
+             <Button variant="ghost" size="icon" className="cursor-pointer">
+              <ChevronUp className={cn('transition-transform duration-300', isListExpanded && 'rotate-180')} />
+            </Button>
           </div>
-        </ScrollArea>
+          <ScrollArea className="flex-grow">
+            <div className="space-y-4 px-4 pb-4">
+              <h2 className="text-2xl font-bold tracking-tight font-headline">
+                {loading
+                  ? 'Finding parking...'
+                  : `Parking Found Near ${currentSearchTerm}`}
+              </h2>
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-52 w-full bg-muted-foreground/20" />
+                  ))}
+                </div>
+              ) : parkingLots.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {parkingLots.map((lot) => (
+                    <ParkingListItem
+                      key={lot.id}
+                      lot={lot}
+                      onSelect={() => handleSelectLot(lot)}
+                      onBook={() => handleOpenBooking(lot)}
+                      isSelected={selectedLot?.id === lot.id}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="w-full col-span-full bg-transparent border-none shadow-none">
+                  <CardContent className="flex items-center justify-center h-full">
+                    <p className="py-8 text-center text-muted-foreground">
+                      {statusMessage}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
       {selectedLot && (
         <BookingSheet
@@ -238,7 +284,7 @@ function ParkingFinder({ searchTerm, isNearbySearch, onSearchHandled }: ParkingF
           onOpenChange={setIsBookingSheetOpen}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -248,13 +294,18 @@ interface MapContainerProps {
   onSearchHandled: () => void;
 }
 
-export default function MapContainer({ searchTerm, isNearbySearch, onSearchHandled }: MapContainerProps) {
+export default function MapContainer({
+  searchTerm,
+  isNearbySearch,
+  onSearchHandled,
+}: MapContainerProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return (
       <div className="container py-10 text-center">
         <p className="text-destructive">
-          Google Maps API Key is missing. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
+          Google Maps API Key is missing. Please set
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
         </p>
       </div>
     );
@@ -262,7 +313,11 @@ export default function MapContainer({ searchTerm, isNearbySearch, onSearchHandl
 
   return (
     <APIProvider apiKey={apiKey} libraries={['places', 'geocoding']}>
-      <ParkingFinder searchTerm={searchTerm} isNearbySearch={isNearbySearch} onSearchHandled={onSearchHandled} />
+      <ParkingFinder
+        searchTerm={searchTerm}
+        isNearbySearch={isNearbySearch}
+        onSearchHandled={onSearchHandled}
+      />
     </APIProvider>
-  )
+  );
 }
