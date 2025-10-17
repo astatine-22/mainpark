@@ -29,7 +29,6 @@ import { FcGoogle } from 'react-icons/fc';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { UserProfile } from '@/lib/types';
 import {
   createUserWithEmailAndPassword,
@@ -54,17 +53,27 @@ function CredentialsForm() {
   const isOwner = userType === 'owner';
 
   useEffect(() => {
+    // This effect handles redirection for email/password login
+    // and for users who are already logged in when visiting the page.
     if (!isUserLoading && user) {
-      toast({
-        title: 'Login Successful!',
-        description: 'Redirecting...',
-      });
-      // The user's profile might not be created instantly in Firestore,
-      // so we redirect based on the URL param as a fallback. A more robust
-      // solution might involve waiting for the Firestore document.
-      router.push(isOwner ? '/dashboard' : '/');
+        // To prevent redirection during a Google sign-in process, we can check
+        // if a specific flow is underway, but for now we will rely on the 
+        // Google sign-in handler to manage its own redirection.
+        
+        // Let's get the user profile to decide where to redirect.
+        const userDocRef = doc(firestore, 'users', user.uid);
+        getDoc(userDocRef).then(docSnap => {
+            if (docSnap.exists()) {
+                const userProfile = docSnap.data() as UserProfile;
+                 router.push(userProfile.userType === 'owner' ? '/dashboard' : '/');
+            } else {
+                // Fallback if profile doesn't exist yet, based on URL param.
+                // This might happen with email signup race conditions.
+                 router.push(isOwner ? '/dashboard' : '/');
+            }
+        });
     }
-  }, [user, isUserLoading, router, isOwner, toast]);
+  }, [user, isUserLoading, router, isOwner, toast, firestore]);
 
   const title = isLogin
     ? `${isOwner ? 'Owner' : 'Driver'} Login`
@@ -99,6 +108,10 @@ function CredentialsForm() {
     if (isLogin) {
       try {
         await signInWithEmailAndPassword(auth, values.email, values.password);
+        toast({
+          title: 'Login Successful!',
+          description: 'Redirecting...',
+        });
         // The useEffect will handle redirection upon successful login.
       } catch (error: any) {
         console.error('Login Error:', error);
@@ -121,6 +134,7 @@ function CredentialsForm() {
         });
       }
     } else {
+      // SIGN UP
       try {
         const tempUserCredential = await createUserWithEmailAndPassword(
           auth,
@@ -137,7 +151,7 @@ function CredentialsForm() {
             name: values.name,
             userType: isOwner ? 'owner' : 'driver',
           };
-          setDocumentNonBlocking(userDocRef, newUserProfile, { merge: true });
+          await setDoc(userDocRef, newUserProfile);
 
           toast({
             title: 'Account Created!',
@@ -174,7 +188,8 @@ function CredentialsForm() {
       const user = result.user;
       
       const additionalUserInfo = getAdditionalUserInfo(result);
-
+      
+      // Check if it's a new user and create a profile if so
       if (additionalUserInfo?.isNewUser) {
         const userDocRef = doc(firestore, "users", user.uid);
         const newUserProfile: UserProfile = {
@@ -183,14 +198,20 @@ function CredentialsForm() {
           name: user.displayName!,
           userType: isOwner ? "owner" : "driver",
         };
-        // Use setDoc here to ensure the profile is created before redirect
         await setDoc(userDocRef, newUserProfile);
       }
-      // The useEffect hook will handle the redirect for both new and existing users.
+      
+      // Now that sign-in is complete and profile is ensured, show toast and redirect
+      toast({
+        title: 'Login Successful!',
+        description: 'Redirecting...',
+      });
+      
+      router.push(isOwner ? '/dashboard' : '/');
+
     } catch (error: any) {
-      // If the user closes the popup, do nothing. This is not a "real" error.
       if (error.code === 'auth/popup-closed-by-user') {
-        return;
+        return; // User intentionally closed the popup, do nothing.
       }
       
       console.error("Google Sign-In Error:", error);
@@ -202,6 +223,13 @@ function CredentialsForm() {
     }
   };
 
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-16 w-16 animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-secondary">
@@ -270,9 +298,9 @@ function CredentialsForm() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting || isUserLoading}
+                disabled={isSubmitting}
               >
-                {(isSubmitting || isUserLoading) && (
+                {isSubmitting && (
                   <Loader2 className="animate-spin" />
                 )}
                 {isLogin ? 'Log In' : 'Create Account'}
