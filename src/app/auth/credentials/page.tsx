@@ -128,10 +128,19 @@ function CredentialsForm() {
         }
       } catch (error: any) {
         console.error("Signup Error:", error);
+        let description = 'Could not create account. Please try again.';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'An account with this email address already exists.';
+        } else if (error.code === 'auth/too-many-requests') {
+            description = 'Account creation is temporarily disabled due to too many attempts. Please try again later.';
+        } else {
+            description = error.message || description;
+        }
+
         toast({
           variant: 'destructive',
           title: 'Uh oh! Something went wrong.',
-          description: error.message || 'Could not create account.',
+          description: description,
         });
       }
     }
