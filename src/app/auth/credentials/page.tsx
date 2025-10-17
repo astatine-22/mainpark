@@ -27,13 +27,10 @@ import {
 import { Car, Building, ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser } from '@/firebase';
-import {
-  initiateEmailSignIn,
-} from '@/firebase/non-blocking-login';
 import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { UserProfile } from '@/lib/types';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 
 function CredentialsForm() {
@@ -55,9 +52,9 @@ function CredentialsForm() {
           title: 'Login Successful!',
           description: 'Redirecting...',
         });
-        // Redirect to the appropriate page based on user type from their profile
-        // This is a placeholder for where you would fetch the user's profile
-        // and redirect based on their stored role.
+        // This is a placeholder. In a real app, you would fetch the user's role
+        // from Firestore and redirect based on that, as the `isOwner` flag here
+        // is based on the URL param, not the user's actual profile data.
         router.push(isOwner ? '/dashboard' : '/');
     }
   }, [user, isUserLoading, router, isOwner, toast]);
@@ -90,11 +87,23 @@ function CredentialsForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (isLogin) {
-      initiateEmailSignIn(auth, values.email, values.password);
+       try {
+        await signInWithEmailAndPassword(auth, values.email, values.password);
+        // The useEffect will handle redirection upon successful login.
+      } catch (error: any) {
+        console.error("Login Error:", error);
+        let description = 'Could not log in. Please try again.';
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+          description = 'Invalid credentials. Please check your email and password.';
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description,
+        });
+      }
     } else {
       try {
-        // This is a simplified approach. In a real app, you'd want to use Cloud Functions
-        // to securely create the user document after the auth user is created.
         const tempUserCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         const user = tempUserCredential.user;
 
@@ -112,7 +121,6 @@ function CredentialsForm() {
             title: 'Account Created!',
             description: 'You can now log in with your new account.',
           });
-          // Log the user out so they can log in fresh
           await signOut(auth);
           router.push(`/auth/credentials?type=${userType}&flow=login`);
         }
