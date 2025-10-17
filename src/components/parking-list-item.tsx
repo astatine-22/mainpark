@@ -27,6 +27,8 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
     statusText = "Available";
   }
 
+  const imageUrl = lot.photoUrls && lot.photoUrls.length > 0 ? lot.photoUrls[0] : 'https://picsum.photos/seed/parking-fallback/400/300';
+
   return (
     <Card
       onClick={onSelect}
@@ -37,15 +39,15 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
     >
       <div className="relative h-28 w-full flex-shrink-0">
         <Image
-          src={lot.image.url}
+          src={imageUrl}
           alt={lot.name}
           fill
           className="rounded-t-lg object-cover"
-          data-ai-hint={lot.image.hint}
+          data-ai-hint={'parking garage'}
         />
          <div className="absolute top-2 right-2 flex items-center bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold">
             <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-400" />
-            {lot.rating}
+            {lot.googleRating}
         </div>
         {lot.distance !== undefined && (
           <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold">
@@ -61,7 +63,7 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
         <div className="space-y-2 mt-2">
             <div className="flex items-center justify-between">
                 <p className={cn("text-sm font-semibold", statusColor)}>{statusText}</p>
-                <p className="text-base font-semibold">Rs {lot.pricePerHour}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
+                <p className="text-base font-semibold">Rs {lot.hourlyRate}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
             </div>
             <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); onBook(); }}>
                 <Zap className="mr-2"/> Book Now
@@ -71,3 +73,5 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
     </Card>
   );
 }
+
+    

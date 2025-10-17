@@ -17,6 +17,8 @@ interface ParkingMarkerProps {
 export default function ParkingMarker({ lot, onClick, onBook, isSelected }: ParkingMarkerProps) {
   const [markerRef, marker] = useAdvancedMarkerRef();
 
+  if (!lot.position) return null;
+
   const occupancy = lot.availableSpots / lot.totalSpots;
   let colorClass, markerBgClass;
 
@@ -52,7 +54,7 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
           </div>
           <div className="absolute -top-1.5 -right-3.5 transform -translate-y-1/2">
              <Badge variant="secondary" className="pl-1 pr-1.5 shadow-sm text-xs">
-                <Star className="h-2.5 w-2.5 mr-0.5 text-yellow-500 fill-yellow-400" /> {lot.rating}
+                <Star className="h-2.5 w-2.5 mr-0.5 text-yellow-500 fill-yellow-400" /> {lot.googleRating}
              </Badge>
           </div>
         </div>
@@ -64,11 +66,11 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
                 <p className="text-sm text-muted-foreground">{lot.address}</p>
                 <div className="flex items-center justify-between my-2">
                     <p className="font-semibold text-lg">
-                        Rs {lot.pricePerHour}<span className="text-sm text-muted-foreground">/hr</span>
+                        Rs {lot.hourlyRate}<span className="text-sm text-muted-foreground">/hr</span>
                     </p>
                 </div>
                 <div className="flex justify-between gap-2 mt-3">
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lot.position.lat},${lot.position.lng}`, '_blank')}>
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => lot.position && window.open(`https://www.google.com/maps/dir/?api=1&destination=${lot.position.lat},${lot.position.lng}`, '_blank')}>
                         <Navigation className="mr-2"/>
                         Navigate
                     </Button>
@@ -83,3 +85,5 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
     </>
   );
 }
+
+    

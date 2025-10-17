@@ -12,6 +12,8 @@ import { Skeleton } from './ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronUp } from 'lucide-react';
 import { cn, getDistance } from '@/lib/utils';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 interface ParkingFinderProps {
   searchTerm: string;
@@ -19,11 +21,14 @@ interface ParkingFinderProps {
   onSearchHandled: () => void;
 }
 
+const SEARCH_RADIUS_KM = 5; // 5km radius for search
+
 function ParkingFinder({
   searchTerm,
   isNearbySearch,
   onSearchHandled,
 }: ParkingFinderProps) {
+  const { firestore } = useFirebase();
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
@@ -46,16 +51,17 @@ function ParkingFinder({
   const [isListExpanded, setIsListExpanded] = useState(false);
 
   const map = useMap();
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(
-    null
-  );
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  
+  const parkingLotsQuery = useMemoFirebase(() => {
+    return collection(firestore, 'parking_lots');
+  }, [firestore]);
+
+  const { data: parkingLotsFromFS, isLoading: isLoadingLots, error: lotsError } = useCollection<ParkingLot>(parkingLotsQuery);
 
   // Effect for initialization and initial search
   useEffect(() => {
     if (!map) return;
-    if (!placesServiceRef.current)
-      placesServiceRef.current = new google.maps.places.PlacesService(map);
     if (!geocoderRef.current) geocoderRef.current = new google.maps.Geocoder();
 
     navigator.geolocation.getCurrentPosition(
@@ -88,7 +94,7 @@ function ParkingFinder({
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
-  }, [map]);
+  }, [map, searchPosition]);
 
   // Effect to watch for live location updates for the blue dot
   useEffect(() => {
@@ -153,63 +159,36 @@ function ParkingFinder({
     }
   }, [map, mapCenter]);
 
-  // Effect to search for places
+  // Effect to filter parking lots from Firestore
   useEffect(() => {
-    if (!placesServiceRef.current || !searchPosition) return;
+    setLoading(isLoadingLots);
+    if (isLoadingLots || !searchPosition || !parkingLotsFromFS) {
+      return;
+    }
 
-    setLoading(true);
-    const placesService = placesServiceRef.current;
-    const request: google.maps.places.PlaceSearchRequest = {
-      location: searchPosition,
-      radius: 1500,
-      keyword: 'pay parking',
-    };
+    const filteredAndSortedLots = parkingLotsFromFS
+      .map(lot => {
+        const lotPosition = { lat: lot.latitude, lng: lot.longitude };
+        const distance = getDistance(searchPosition, lotPosition);
+        return { ...lot, distance, position: lotPosition };
+      })
+      .filter(lot => lot.distance <= SEARCH_RADIUS_KM)
+      .sort((a, b) => a.distance - b.distance);
 
-    placesService.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const fetchedLots: ParkingLot[] = results
-          .filter((place) => place.geometry && place.geometry.location)
-          .map((place, index) => {
-            const lotPosition = {
-              lat: place.geometry!.location!.lat(),
-              lng: place.geometry!.location!.lng(),
-            };
-            return {
-              id: place.place_id || `p${index}`,
-              name: place.name || 'Unknown Parking',
-              address: place.vicinity || 'Address not available',
-              position: lotPosition,
-              rating: place.rating || 4.0,
-              totalSpots: Math.floor(Math.random() * 150) + 50,
-              availableSpots: Math.floor(Math.random() * 50),
-              pricePerHour: Math.floor(Math.random() * 80) + 40,
-              image: {
-                url:
-                  place.photos?.[0]?.getUrl() ||
-                  `https://picsum.photos/seed/parking${index}/400/300`,
-                hint: 'parking garage',
-              },
-              distance: userPosition
-                ? getDistance(userPosition, lotPosition)
-                : undefined,
-            };
-          });
-        setParkingLots(fetchedLots.sort((a, b) => (a.distance || 99) - (b.distance || 99) ));
-        if (fetchedLots.length === 0) {
-          setStatusMessage('No paid parking lots found in this area.');
-        }
-      } else {
-        console.error('Places API search failed:', status);
-        setParkingLots([]);
-        setStatusMessage('No paid parking lots found in this area.');
-      }
-      setLoading(false);
-    });
-  }, [searchPosition, userPosition]);
+    setParkingLots(filteredAndSortedLots);
+    
+    if (filteredAndSortedLots.length === 0) {
+      setStatusMessage(`No parking lots found within ${SEARCH_RADIUS_KM}km.`);
+    }
+
+    setLoading(false);
+
+  }, [searchPosition, parkingLotsFromFS, isLoadingLots]);
+
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
-    if (map) {
+    if (map && lot.position) {
       map.panTo(lot.position);
       map.setZoom(15);
     }
@@ -327,3 +306,5 @@ export default function MapContainer({
     </APIProvider>
   );
 }
+
+    

@@ -39,7 +39,7 @@ export function BookingSheet({ lot, isOpen, onOpenChange }: BookingSheetProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [time, setTime] = useState(format(new Date(), 'HH:mm'));
   const [hours, setHours] = useState('1');
-  const [totalPrice, setTotalPrice] = useState(lot.pricePerHour);
+  const [totalPrice, setTotalPrice] = useState(lot.hourlyRate);
   const [isPeak, setIsPeak] = useState(false);
   
   const { toast } = useToast();
@@ -47,17 +47,16 @@ export function BookingSheet({ lot, isOpen, onOpenChange }: BookingSheetProps) {
   useEffect(() => {
     if (date && time) {
       const [startHours] = time.split(':').map(Number);
-      const bookingStartHour = new Date(date).setHours(startHours);
       
       const isPeakTime = startHours >= PEAK_HOUR_START && startHours < PEAK_HOUR_END;
       setIsPeak(isPeakTime);
 
-      const basePrice = lot.pricePerHour * parseInt(hours, 10);
+      const basePrice = lot.hourlyRate * parseInt(hours, 10);
       const finalPrice = isPeakTime ? basePrice * PEAK_HOUR_MULTIPLIER : basePrice;
       
       setTotalPrice(finalPrice);
     }
-  }, [date, time, hours, lot.pricePerHour]);
+  }, [date, time, hours, lot.hourlyRate]);
 
 
   const handleBooking = () => {
@@ -132,3 +131,5 @@ export function BookingSheet({ lot, isOpen, onOpenChange }: BookingSheetProps) {
     </Sheet>
   );
 }
+
+    
