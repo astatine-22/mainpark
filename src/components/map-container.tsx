@@ -268,7 +268,7 @@ export default function MapContainer({
   searchTerm,
   isNearbySearch,
   onSearchHandled,
-}: MapContainerProps) {
+}: ParkingFinderProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return (
