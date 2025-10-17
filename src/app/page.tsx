@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import MapContainer from '@/components/map-container';
 import { useUser } from '@/firebase';
@@ -11,16 +11,17 @@ export default function DriverPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [isUserLoading, user, router]);
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
+    // Return a loading indicator or null while we wait for auth state
+    // and the redirect to happen. This prevents rendering the main page content.
     return <div>Loading...</div>;
   }
-  
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
-
 
   const handleSearchSubmit = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
