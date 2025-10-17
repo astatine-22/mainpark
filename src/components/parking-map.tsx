@@ -22,8 +22,7 @@ export default function ParkingMap({ parkingLots, onSelectLot, onOpenBooking, se
     <div className="w-full h-full">
         <Map
             defaultCenter={mapCenter}
-            defaultZoom={userPosition || center ? 14 : 5}
-            center={mapCenter}
+            defaultZoom={14}
             gestureHandling={'greedy'}
             disableDefaultUI={false}
             mapId="parksmart-map"
