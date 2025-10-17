@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 
 function CredentialsForm() {
   const { toast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const userType = searchParams.get('type') || 'driver';
   const flow = searchParams.get('flow') || 'login';
@@ -66,12 +67,21 @@ function CredentialsForm() {
     // In a real app, you'd handle authentication here (e.g., with Firebase)
     await new Promise((resolve) => setTimeout(resolve, 1500));
     
-    toast({
-      title: isLogin ? 'Login Successful!' : 'Account Created!',
-      description: isLogin ? `Welcome back, ${values.email}!` : "You can now log in with your new account.",
-    });
-
-    console.log(values);
+    if (isLogin) {
+      toast({
+        title: 'Login Successful!',
+        description: `Welcome back, ${values.email}! Redirecting...`,
+      });
+      // Redirect to the appropriate page based on user type
+      router.push(isOwner ? '/dashboard' : '/');
+    } else {
+      toast({
+        title: 'Account Created!',
+        description: "You can now log in with your new account.",
+      });
+      // Redirect to login page after signup
+       router.push(`/auth/credentials?type=${userType}&flow=login`);
+    }
   }
 
   return (
