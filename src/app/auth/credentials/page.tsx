@@ -188,6 +188,11 @@ function CredentialsForm() {
       }
       // The useEffect hook will handle the redirect for both new and existing users.
     } catch (error: any) {
+      // If the user closes the popup, do nothing. This is not a "real" error.
+      if (error.code === 'auth/popup-closed-by-user') {
+        return;
+      }
+      
       console.error("Google Sign-In Error:", error);
        toast({
         variant: "destructive",
@@ -318,4 +323,3 @@ export default function CredentialsPage() {
     </Suspense>
   );
 }
-    
