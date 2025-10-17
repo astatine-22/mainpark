@@ -14,6 +14,7 @@ export type ParkingLot = {
     url: string;
     hint: string;
   };
+  distance?: number;
 };
 
 export type Booking = {

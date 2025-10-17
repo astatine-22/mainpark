@@ -47,6 +47,11 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected }: P
             <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-400" />
             {lot.rating}
         </div>
+        {lot.distance !== undefined && (
+          <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold">
+            {lot.distance.toFixed(1)} km away
+          </div>
+        )}
       </div>
       <CardContent className="p-3 flex-grow flex flex-col justify-between">
         <div>

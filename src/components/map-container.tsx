@@ -11,7 +11,7 @@ import { Card, CardContent } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getDistance } from '@/lib/utils';
 
 interface ParkingFinderProps {
   searchTerm: string;
@@ -169,26 +169,32 @@ function ParkingFinder({
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         const fetchedLots: ParkingLot[] = results
           .filter((place) => place.geometry && place.geometry.location)
-          .map((place, index) => ({
-            id: place.place_id || `p${index}`,
-            name: place.name || 'Unknown Parking',
-            address: place.vicinity || 'Address not available',
-            position: {
+          .map((place, index) => {
+            const lotPosition = {
               lat: place.geometry!.location!.lat(),
               lng: place.geometry!.location!.lng(),
-            },
-            rating: place.rating || 4.0,
-            totalSpots: Math.floor(Math.random() * 150) + 50,
-            availableSpots: Math.floor(Math.random() * 50),
-            pricePerHour: Math.floor(Math.random() * 80) + 40,
-            image: {
-              url:
-                place.photos?.[0]?.getUrl() ||
-                `https://picsum.photos/seed/parking${index}/400/300`,
-              hint: 'parking garage',
-            },
-          }));
-        setParkingLots(fetchedLots);
+            };
+            return {
+              id: place.place_id || `p${index}`,
+              name: place.name || 'Unknown Parking',
+              address: place.vicinity || 'Address not available',
+              position: lotPosition,
+              rating: place.rating || 4.0,
+              totalSpots: Math.floor(Math.random() * 150) + 50,
+              availableSpots: Math.floor(Math.random() * 50),
+              pricePerHour: Math.floor(Math.random() * 80) + 40,
+              image: {
+                url:
+                  place.photos?.[0]?.getUrl() ||
+                  `https://picsum.photos/seed/parking${index}/400/300`,
+                hint: 'parking garage',
+              },
+              distance: userPosition
+                ? getDistance(userPosition, lotPosition)
+                : undefined,
+            };
+          });
+        setParkingLots(fetchedLots.sort((a, b) => (a.distance || 99) - (b.distance || 99) ));
         if (fetchedLots.length === 0) {
           setStatusMessage('No paid parking lots found in this area.');
         }
@@ -199,7 +205,7 @@ function ParkingFinder({
       }
       setLoading(false);
     });
-  }, [searchPosition]);
+  }, [searchPosition, userPosition]);
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
