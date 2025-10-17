@@ -3,29 +3,46 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
 
 export function MainNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   const pathname = usePathname();
+  const { firestore, user } = useFirebase();
 
-  const routes = [
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+  const allRoutes = [
     {
       href: '/',
       label: 'Find Parking',
       active: pathname === '/',
+      allowedRoles: ['driver', 'owner'],
     },
     {
       href: '/dashboard',
       label: 'Manager Dashboard',
       active: pathname === '/dashboard',
+      allowedRoles: ['owner'],
     },
   ];
 
+  const routes = allRoutes.filter(route => 
+    userProfile ? route.allowedRoles.includes(userProfile.userType) : route.href === '/'
+  );
+
   return (
     <nav
-      className={cn('flex items-center space-x-4 lg:space-x-6', className)}
+      className={cn('hidden md:flex items-center space-x-4 lg:space-x-6', className)}
       {...props}
     >
       {routes.map((route) => (
