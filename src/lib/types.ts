@@ -12,6 +12,7 @@ export type ParkingLot = {
   dailyRate?: number;
   photoUrls: string[];
   managerId: string;
+  distance?: number;
 };
 
 // This type uses Firestore's Timestamp format for dates
@@ -33,5 +34,3 @@ export type UserProfile = {
   name: string;
   userType: 'driver' | 'owner';
 };
-
-    

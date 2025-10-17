@@ -28,7 +28,7 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected, use
     statusText = "Available";
   }
 
-  const distance = userPosition ? getDistance(userPosition, {lat: lot.latitude, lng: lot.longitude}) : null;
+  const distance = lot.distance;
 
   return (
     <Card
@@ -50,7 +50,7 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected, use
             <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-400" />
             {lot.googleRating.toFixed(1)}
         </div>
-        {distance !== null && (
+        {distance !== null && distance !== undefined && (
           <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold">
             {distance.toFixed(1)} km away
           </div>
