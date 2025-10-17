@@ -23,7 +23,7 @@ export default function DashboardPage() {
     <Header />
     <div className="container mx-auto py-10">
       <div className="space-y-4">
-        <h2 className="text-3xl font-bold tracking-tight font-headline">
+        <h2 className="text-3xl font-bold tracking-tight">
           Manager Dashboard
         </h2>
         <Tabs defaultValue="overview" className="space-y-4">
@@ -75,8 +75,7 @@ export default function DashboardPage() {
           <TabsContent value="predictor" className="space-y-4">
             <Card>
               <CardHeader>
-                  <CardTitle>AI Occupancy Predictor</CardTitle>
-                  <CardDescription>
+                  <CardTitle>AI Occupancy Predictor</CardTitle>                  <CardDescription>
                     Leverage AI to predict parking occupancy trends and inform users of likely availability, helping them plan their trips better.
                   </CardDescription>
                 </CardHeader>

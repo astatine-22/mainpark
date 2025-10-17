@@ -33,17 +33,17 @@ export default function Header({ onSearchSubmit, onNearbyClick, showSearch }: He
       <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
         <Link href="/" className="flex items-center space-x-2">
           <Car className="h-6 w-6 text-primary" />
-          <span className="font-headline text-xl font-bold text-primary">
+          <span className="text-xl font-bold text-foreground">
             ParkSmart
           </span>
         </Link>
         <div className="flex flex-1 items-center justify-center px-4 lg:px-8">
             {showSearch && (
               <div className="relative w-full max-w-md flex items-center gap-2">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input 
                       placeholder="Search any city or locality..." 
-                      className="pl-8"
+                      className="pl-10"
                       value={localSearchTerm}
                       onChange={(e) => setLocalSearchTerm(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -51,8 +51,8 @@ export default function Header({ onSearchSubmit, onNearbyClick, showSearch }: He
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleNearby} className="flex-shrink-0">
-                          <LocateFixed className="h-4 w-4" />
+                        <Button variant="outline" size="icon" onClick={handleNearby} className="flex-shrink-0 h-12 w-12 rounded-xl">
+                          <LocateFixed className="h-5 w-5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>

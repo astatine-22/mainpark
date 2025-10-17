@@ -31,20 +31,20 @@ export default function OccupancyChart() {
       <BarChart accessibilityLayer data={data}>
         <XAxis
           dataKey="time"
-          stroke="#888888"
+          stroke="hsl(var(--muted-foreground))"
           fontSize={12}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          stroke="#888888"
+          stroke="hsl(var(--muted-foreground))"
           fontSize={12}
           tickLine={false}
           axisLine={false}
           tickFormatter={(value) => `${value}`}
         />
          <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
-        <Bar dataKey="occupancy" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="occupancy" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
       </BarChart>
     </ChartContainer>
   );

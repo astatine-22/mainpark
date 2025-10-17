@@ -50,26 +50,24 @@ function CredentialsForm() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        getDoc(userDocRef).then(docSnap => {
-            if (docSnap.exists()) {
-                const userProfile = docSnap.data() as UserProfile;
-                 router.push(userProfile.userType === 'owner' ? '/dashboard' : '/');
-            } else {
-                 router.push(isOwner ? '/dashboard' : '/');
-            }
-        });
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          const userProfile = docSnap.data() as UserProfile;
+          router.push(userProfile.userType === 'owner' ? '/dashboard' : '/');
+        } else {
+          router.push(isOwner ? '/dashboard' : '/');
+        }
+      });
     }
-  }, [user, isUserLoading, router, isOwner, toast, firestore]);
+  }, [user, isUserLoading, router, isOwner, firestore]);
 
   const title = isLogin
     ? `${isOwner ? 'Owner' : 'Driver'} Login`
     : `Create ${isOwner ? 'an Owner' : 'a Driver'} Account`;
 
   const description = isLogin
-    ? `Welcome back! Please enter your credentials to access your ${
-        isOwner ? 'dashboard' : 'account'
-      }.`
+    ? `Welcome back! Please enter your credentials to continue.`
     : `Join ParkSmart! Fill out the form below to get started.`;
 
   const formSchema = z.object({
@@ -166,17 +164,17 @@ function CredentialsForm() {
     }
   }
 
-  if (isUserLoading) {
+  if (isUserLoading && !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-16 w-16 animate-spin" />
       </div>
-    )
+    );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary">
-      <Card className="w-full max-w-md m-4">
+    <div className="flex items-center justify-center min-h-screen bg-muted">
+      <Card className="w-full max-w-md m-4 bg-background">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader className="text-center">
@@ -185,7 +183,7 @@ function CredentialsForm() {
               ) : (
                 <Car className="mx-auto h-12 w-12 text-muted-foreground" />
               )}
-              <CardTitle className="text-2xl font-bold font-headline mt-4">
+              <CardTitle className="text-2xl font-bold mt-4">
                 {title}
               </CardTitle>
               <CardDescription>{description}</CardDescription>
@@ -240,6 +238,7 @@ function CredentialsForm() {
             <CardFooter className="flex flex-col gap-4">
               <Button
                 type="submit"
+                size="lg"
                 className="w-full"
                 disabled={isSubmitting}
               >
@@ -254,7 +253,7 @@ function CredentialsForm() {
                   href={`/auth/credentials?type=${userType}&flow=${
                     isLogin ? 'signup' : 'login'
                   }`}
-                  className="underline ml-1"
+                  className="underline ml-1 font-semibold text-primary"
                 >
                   {isLogin ? 'Sign Up' : 'Log In'}
                 </Link>
