@@ -152,7 +152,7 @@
           "description": "The QR code associated with the booking."
         },
         "status": {
-          "type": "string",_
+          "type": "string",
           "description": "The status of the booking (e.g., 'active', 'completed', 'cancelled')."
         }
       },
@@ -233,8 +233,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "google.com"
+      "password"
     ]
   },
   "firestore": {

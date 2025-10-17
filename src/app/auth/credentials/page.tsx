@@ -25,7 +25,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Car, Building, ArrowLeft, Loader2 } from 'lucide-react';
-import { FcGoogle } from 'react-icons/fc';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -34,9 +33,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
-  getAdditionalUserInfo
 } from 'firebase/auth';
 
 function CredentialsForm() {
@@ -53,22 +49,13 @@ function CredentialsForm() {
   const isOwner = userType === 'owner';
 
   useEffect(() => {
-    // This effect handles redirection for email/password login
-    // and for users who are already logged in when visiting the page.
     if (!isUserLoading && user) {
-        // To prevent redirection during a Google sign-in process, we can check
-        // if a specific flow is underway, but for now we will rely on the 
-        // Google sign-in handler to manage its own redirection.
-        
-        // Let's get the user profile to decide where to redirect.
         const userDocRef = doc(firestore, 'users', user.uid);
         getDoc(userDocRef).then(docSnap => {
             if (docSnap.exists()) {
                 const userProfile = docSnap.data() as UserProfile;
                  router.push(userProfile.userType === 'owner' ? '/dashboard' : '/');
             } else {
-                // Fallback if profile doesn't exist yet, based on URL param.
-                // This might happen with email signup race conditions.
                  router.push(isOwner ? '/dashboard' : '/');
             }
         });
@@ -112,7 +99,6 @@ function CredentialsForm() {
           title: 'Login Successful!',
           description: 'Redirecting...',
         });
-        // The useEffect will handle redirection upon successful login.
       } catch (error: any) {
         console.error('Login Error:', error);
         let description = 'Could not log in. Please try again.';
@@ -134,7 +120,6 @@ function CredentialsForm() {
         });
       }
     } else {
-      // SIGN UP
       try {
         const tempUserCredential = await createUserWithEmailAndPassword(
           auth,
@@ -180,48 +165,6 @@ function CredentialsForm() {
       }
     }
   }
-
-  const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      
-      // Check if it's a new user and create a profile if so
-      if (additionalUserInfo?.isNewUser) {
-        const userDocRef = doc(firestore, "users", user.uid);
-        const newUserProfile: UserProfile = {
-          uid: user.uid,
-          email: user.email!,
-          name: user.displayName!,
-          userType: isOwner ? "owner" : "driver",
-        };
-        await setDoc(userDocRef, newUserProfile);
-      }
-      
-      // Now that sign-in is complete and profile is ensured, show toast and redirect
-      toast({
-        title: 'Login Successful!',
-        description: 'Redirecting...',
-      });
-      
-      router.push(isOwner ? '/dashboard' : '/');
-
-    } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        return; // User intentionally closed the popup, do nothing.
-      }
-      
-      console.error("Google Sign-In Error:", error);
-       toast({
-        variant: "destructive",
-        title: "Google Sign-In Failed",
-        description: error.message || "Could not sign in with Google. Please try again."
-      });
-    }
-  };
 
   if (isUserLoading) {
     return (
@@ -304,20 +247,6 @@ function CredentialsForm() {
                   <Loader2 className="animate-spin" />
                 )}
                 {isLogin ? 'Log In' : 'Create Account'}
-              </Button>
-               <div className="relative w-full">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} type="button">
-                <FcGoogle className="mr-2 h-5 w-5" />
-                Google
               </Button>
               <div className="text-center text-sm">
                 {isLogin ? "Don't have an account?" : 'Already have an account?'}
