@@ -233,7 +233,8 @@
   },
   "auth": {
     "providers": [
-      "password"
+      "password",
+      "google.com"
     ]
   },
   "firestore": {
@@ -326,3 +327,4 @@
     "reasoning": "The Firestore structure prioritizes authorization independence and clarity for ParkSmart. User data is stored under `/users/{userId}`.  ParkingLots are stored under the `/parking_lots/{parkingLotId}` collection. Bookings are stored under `/bookings/{bookingId}`, which includes denormalized `userId` and `parkingLotId` to enable performant queries and enforce security rules without complex `get()` calls. ParkingManagers are stored under `/parking_managers/{parkingManagerId}`. PaymentMethods are stored under `/users/{userId}/payment_methods/{paymentMethodId}`. \n\nThis structure ensures authorization independence. For example, a booking document contains the `userId` and `parkingLotId`. Rules can validate that the user in `request.auth.uid` matches the `userId` in the document, or that a `ParkingManager` can only modify a `ParkingLot` they own by checking if `parkingLot.managerId == request.auth.uid`.\n\nQAPs are supported as follows:\n\n*   Listing all ParkingLots: The `/parking_lots` collection enables listing all parking lots. Security rules can limit creation and modification based on user roles (e.g., only admins can create parking lots).\n*   Listing Bookings for a User: The `/bookings` collection, with the denormalized `userId`, allows efficient querying of bookings for a specific user. Security rules can ensure that users can only access their own bookings.\n*   Listing PaymentMethods for a User: The `/users/{userId}/payment_methods` collection ensures that only the authenticated user can access their payment methods."
   }
 }
+    
