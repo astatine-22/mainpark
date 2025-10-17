@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  "projectId": "studio-3490601220-af343",
-  "appId": "1:883866076993:web:8c32358e6eed63575d83c0",
-  "apiKey": "AIzaSyC9J-ftE9Lmn5hEY1OHpFQODt_YTAXTK10",
-  "authDomain": "studio-3490601220-af343.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "883866076993"
+  apiKey: 'AIzaSyDf6VCC6t6nkM8LdnnZBm1POlJaoOk7QSI',
+  authDomain: 'parksmart-e8a0b.firebaseapp.com',
+  projectId: 'parksmart-e8a0b',
+  storageBucket: 'parksmart-e8a0b.firebasestorage.app',
+  messagingSenderId: '1019876570969',
+  appId: '1:1019876570969:web:a3f769d8091573c1c1fe48',
 };
