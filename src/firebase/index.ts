@@ -2,7 +2,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -33,9 +33,21 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  const auth = getAuth(firebaseApp);
+  // In a real app we wouldn't do this, but for the sake of the demo, we'll
+  // automatically create a user if one doesn't exist.
+  if (!auth.currentUser) {
+    createUserWithEmailAndPassword(auth, 'test@example.com', 'password').catch(
+      (e) => {
+        if (e.code !== 'auth/email-already-in-use') {
+          console.error(e);
+        }
+      }
+    );
+  }
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
+    auth,
     firestore: getFirestore(firebaseApp)
   };
 }
@@ -44,6 +56,7 @@ export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
+export * from './auth/use-user';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';

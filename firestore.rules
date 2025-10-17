@@ -1,159 +1,145 @@
 /**
- * @file Firebase Security Rules for ParkSmart Firestore Database
+ * @fileoverview Firestore Security Rules for ParkSmart.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user-specific data (users, payment methods).
- * Public read access is granted to parking lot data.
- * Authorization relies on the authenticated user's UID.
+ * This ruleset enforces a strict user-ownership model for user-specific data
+ * and allows public read access to parking lot information. Write access to
+ * parking lots is restricted. Bookings are secured to ensure users can only
+ * manage their own bookings. Payment methods are strictly private to the user.
  *
  * Data Structure:
- * - /users/{userId}: Stores private user profiles.
- * - /parking_lots/{parkingLotId}: Stores public parking lot information.
- * - /bookings/{bookingId}: Stores booking information with denormalized userId and parkingLotId.
- * - /parking_managers/{parkingManagerId}: Stores parking manager profiles.
- * - /users/{userId}/payment_methods/{paymentMethodId}: Stores private user payment methods.
+ * - /users/{userId}: Stores private user data. Access is restricted to the
+ *   authenticated user.
+ * - /parking_lots/{parkingLotId}: Stores public parking lot data. Read access
+ *   is public, write access is restricted.
+ * - /bookings/{bookingId}: Stores booking data. Access is restricted to the
+ *   user who created the booking.
+ * - /parking_managers/{parkingManagerId}: Stores parking manager data. Access is restricted to the parking manager.
+ * - /users/{userId}/payment_methods/{paymentMethodId}: Stores private payment
+ *   method data. Access is restricted to the authenticated user.
  *
  * Key Security Decisions:
- * - Users can only access their own data.
- * - Parking lot data is publicly readable.
- * - Bookings can only be created for the authenticated user.
- * - Listing all bookings is not explicitly supported, but could be added if needed by querying based on denormalized `userId`.
- * - Payment methods are strictly user-owned and private.
- * - Data validation is relaxed for rapid prototyping, but critical ownership fields are validated.
- *
- * Denormalization for Authorization:
- * - Bookings include `userId` and `parkingLotId` to avoid costly `get()` calls for authorization.
- *
- * Structural Segregation:
- * - Private user data is stored under `/users/{userId}` to prevent accidental public exposure.
+ * - User listing is implicitly disallowed due to the user-centric data model.
+ * - Parking lot data is publicly readable to facilitate discovery.
+ * - Write operations on ParkingLots are not currently implemented, but are
+ *   reserved for ParkingManagers.
+ * - To simplify rules and improve performance, the Booking entity denormalizes
+ *   both `userId` and `parkingLotId`.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profiles.
+     * @description Enforces user-ownership for user profiles.
      * @path /users/{userId}
-     * @allow (create) Signed-in user with matching UID creates their profile.
-     * @allow (get, list, update, delete) Signed-in user with matching UID accesses their profile.
-     * @deny (create, get, list, update, delete) Any operation if the user is not signed in or the UID does not match.
+     * @allow (create) - User with UID 'user_abc' can create their profile if request.auth.uid == 'user_abc' and request.resource.data.id == 'user_abc'.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read/update/delete their profile at /users/user_abc.
+     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /users/user_abc.
+     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete the profile at /users/user_abc.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
       }
 
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow get, list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to parking lot information.
+     * @description Allows public read access to parking lot information, but restricts write access.
      * @path /parking_lots/{parkingLotId}
-     * @allow (get, list) Anyone can read parking lot information.
-     * @deny (create, update, delete) Only authenticated parking managers with the correct managerId can write.
-     * @principle Allows public read access but restricts write access to authorized managers.
+     * @allow (get, list) - Any user can read parking lot information.
+     * @deny (create, update, delete) - No user can create, update or delete parking lots without specific authorization.
+     * @principle Allows public read access with restricted write access.
      */
     match /parking_lots/{parkingLotId} {
       allow get, list: if true;
-
-      // TODO: Add parking manager role check once roles are defined.  Currently only allows authenticated users to create.
-      allow create: if isSignedIn();
-
-      // TODO: Add parking manager role check and validation for `managerId` on update.  Currently denies all updates.
-      allow update: if false;
-
-      // TODO: Add parking manager role check.  Currently denies all deletes.
-      allow delete: if false;
+      allow create: if false; // TODO: Add ParkingManager validation once that role is defined.
+      allow update: if false; // TODO: Add ParkingManager validation once that role is defined.
+      allow delete: if false; // TODO: Add ParkingManager validation once that role is defined.
     }
 
     /**
-     * @description Controls access to booking information.
+     * @description Enforces user-ownership for bookings, allowing users to manage their own bookings.
      * @path /bookings/{bookingId}
-     * @allow (create) Signed-in user creates a booking for themselves.
-     * @allow (get, update, delete) Signed-in user with matching UID accesses their booking.
-     * @deny (create, get, update, delete) Any operation if the user is not signed in or the UID does not match.
+     * @allow (create) - User with UID 'user_abc' can create a booking if request.resource.data.userId == 'user_abc'.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read/update/delete a booking if resource.data.userId == 'user_abc'.
+     * @deny (create) - User with UID 'user_xyz' cannot create a booking with userId 'user_abc'.
+     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete a booking with userId 'user_abc'.
      * @principle Enforces document ownership for all operations.
      */
     match /bookings/{bookingId} {
-      function isSignedIn() {
-        return request.auth != null;
+      function isOwnerOfBooking(userId) {
+        return request.auth != null && request.auth.uid == userId;
       }
 
-      function isOwner(userId) {
-        return request.auth.uid == userId;
+      function isExistingOwnerOfBooking(userId) {
+        return isOwnerOfBooking(userId) && resource != null;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(resource.data.userId) && resource != null;
-      }
-
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && isOwner(resource.data.userId);
-      allow update: if isExistingOwner(resource.data.userId);
-      allow delete: if isExistingOwner(resource.data.userId);
-      allow list: if false;
+      allow get: if isOwnerOfBooking(resource.data.userId);
+      allow list: if false; // Listing not supported on this collection
+      allow create: if request.auth != null && isOwnerOfBooking(request.resource.data.userId);
+      allow update: if isExistingOwnerOfBooking(resource.data.userId);
+      allow delete: if isExistingOwnerOfBooking(resource.data.userId);
     }
 
     /**
-     * @description Controls access to parking manager profiles.
+     * @description Enforces parking manager-ownership for parking manager profiles.
      * @path /parking_managers/{parkingManagerId}
-     * @allow (create, get, list, update, delete) Only authenticated parking managers with matching ID can access their profiles.
-     * @deny (create, get, list, update, delete) Any operation if the user is not signed in or the UID does not match.
+     * @allow (create) - Parking manager can create their profile if request.auth.uid == parkingManagerId.
+     * @allow (get, update, delete) - Parking manager can read/update/delete their profile if request.auth.uid == parkingManagerId.
+     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /parking_managers/manager_abc.
+     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete the profile at /parking_managers/manager_abc.
      * @principle Enforces document ownership for all operations.
      */
     match /parking_managers/{parkingManagerId} {
-      function isSignedIn() {
-        return request.auth != null;
+      function isParkingManager(parkingManagerId) {
+        return request.auth != null && request.auth.uid == parkingManagerId;
       }
 
-      function isOwner(parkingManagerId) {
-        return request.auth.uid == parkingManagerId;
+      function isExistingParkingManager(parkingManagerId) {
+        return isParkingManager(parkingManagerId) && resource != null;
       }
 
-      function isExistingOwner(parkingManagerId) {
-        return isOwner(parkingManagerId) && resource != null;
-      }
-
-      allow create: if isSignedIn() && isOwner(parkingManagerId) && request.resource.data.id == parkingManagerId;
-      allow get, list: if isOwner(parkingManagerId);
-      allow update: if isExistingOwner(parkingManagerId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(parkingManagerId);
+      allow get: if isParkingManager(parkingManagerId);
+      allow list: if false;
+      allow create: if isParkingManager(parkingManagerId) && request.resource.data.id == parkingManagerId;
+      allow update: if isExistingParkingManager(parkingManagerId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingParkingManager(parkingManagerId);
     }
 
     /**
-     * @description Controls access to payment methods.
+     * @description Enforces user-ownership for payment methods, ensuring that only the user can access their own payment methods.
      * @path /users/{userId}/payment_methods/{paymentMethodId}
-     * @allow (create, get, list, update, delete) Signed-in user with matching UID accesses their payment methods.
-     * @deny (create, get, list, update, delete) Any operation if the user is not signed in or the UID does not match.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - User with UID 'user_abc' can create a payment method if request.auth.uid == 'user_abc' and request.resource.data.userId == 'user_abc'.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read/update/delete a payment method at /users/user_abc/payment_methods/payment_123.
+     * @deny (create) - User with UID 'user_xyz' cannot create a payment method at /users/user_abc/payment_methods/payment_123.
+     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete the payment method at /users/user_abc/payment_methods/payment_123.
+     * @principle Enforces strict user-ownership for all operations on payment methods.
      */
     match /users/{userId}/payment_methods/{paymentMethodId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
       }
 
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow get, list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }

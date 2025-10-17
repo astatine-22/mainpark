@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +16,6 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Form,
   FormControl,
@@ -27,16 +26,42 @@ import {
 } from '@/components/ui/form';
 import { Car, Building, ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase, useUser } from '@/firebase';
+import {
+  initiateEmailSignUp,
+  initiateEmailSignIn,
+} from '@/firebase/non-blocking-login';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { UserProfile } from '@/lib/types';
+
 
 function CredentialsForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { auth, firestore } = useFirebase();
+  const { user, isUserLoading } = useUser();
+
   const userType = searchParams.get('type') || 'driver';
   const flow = searchParams.get('flow') || 'login';
 
   const isLogin = flow === 'login';
   const isOwner = userType === 'owner';
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+        toast({
+          title: 'Login Successful!',
+          description: 'Redirecting...',
+        });
+        // Redirect to the appropriate page based on user type from their profile
+        // This is a placeholder for where you would fetch the user's profile
+        // and redirect based on their stored role.
+        router.push(isOwner ? '/dashboard' : '/');
+    }
+  }, [user, isUserLoading, router, isOwner, toast]);
+
 
   const title = isLogin
     ? `${isOwner ? 'Owner' : 'Driver'} Login`
@@ -64,23 +89,41 @@ function CredentialsForm() {
   const { isSubmitting } = form.formState;
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you'd handle authentication here (e.g., with Firebase)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
     if (isLogin) {
-      toast({
-        title: 'Login Successful!',
-        description: `Welcome back, ${values.email}! Redirecting...`,
-      });
-      // Redirect to the appropriate page based on user type
-      router.push(isOwner ? '/dashboard' : '/');
+      initiateEmailSignIn(auth, values.email, values.password);
     } else {
-      toast({
-        title: 'Account Created!',
-        description: "You can now log in with your new account.",
-      });
-      // Redirect to login page after signup
-       router.push(`/auth/credentials?type=${userType}&flow=login`);
+      try {
+        // This is a simplified approach. In a real app, you'd want to use Cloud Functions
+        // to securely create the user document after the auth user is created.
+        const tempUserCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+        const user = tempUserCredential.user;
+
+        if (user && values.name) {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const newUserProfile: UserProfile = {
+            uid: user.uid,
+            email: values.email,
+            name: values.name,
+            userType: isOwner ? 'owner' : 'driver',
+          };
+          setDocumentNonBlocking(userDocRef, newUserProfile, { merge: true });
+          
+          toast({
+            title: 'Account Created!',
+            description: 'You can now log in with your new account.',
+          });
+          // Log the user out so they can log in fresh
+          await auth.signOut();
+          router.push(`/auth/credentials?type=${userType}&flow=login`);
+        }
+      } catch (error: any) {
+        console.error("Signup Error:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Uh oh! Something went wrong.',
+          description: error.message || 'Could not create account.',
+        });
+      }
     }
   }
 
@@ -142,8 +185,8 @@ function CredentialsForm() {
               />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
+              <Button type="submit" className="w-full" disabled={isSubmitting || isUserLoading}>
+                {(isSubmitting || isUserLoading) && <Loader2 className="animate-spin" />}
                 {isLogin ? 'Log In' : 'Create Account'}
               </Button>
               <div className="text-center text-sm">

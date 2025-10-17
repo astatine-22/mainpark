@@ -6,10 +6,9 @@
       "type": "object",
       "description": "Represents a user of the ParkSmart application.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the user.",
-          "format": "uuid"
+          "description": "Unique identifier for the user, matching Firebase Auth UID."
         },
         "name": {
           "type": "string",
@@ -20,30 +19,20 @@
           "description": "The user's email address.",
           "format": "email"
         },
-        "phoneNumber": {
+        "userType": {
           "type": "string",
-          "description": "The user's phone number."
-        },
-        "savedPaymentMethods": {
-          "type": "array",
-          "description": "Array of saved payment method IDs. (Relationship: User 1:N PaymentMethod)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "bookingIds": {
-          "type": "array",
-          "description": "References to Bookings. (Relationship: User 1:N Booking)",
-          "items": {
-            "type": "string"
-          }
+          "description": "The type of user.",
+          "enum": [
+            "driver",
+            "owner"
+          ]
         }
       },
       "required": [
-        "id",
+        "uid",
         "name",
         "email",
-        "phoneNumber"
+        "userType"
       ]
     },
     "ParkingLot": {
@@ -163,7 +152,7 @@
           "description": "The QR code associated with the booking."
         },
         "status": {
-          "type": "string",
+          "type": "string",_
           "description": "The status of the booking (e.g., 'active', 'completed', 'cancelled')."
         }
       },
@@ -244,8 +233,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {

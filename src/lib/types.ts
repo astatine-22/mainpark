@@ -28,3 +28,10 @@ export type Booking = {
   amount: number;
   status: 'active' | 'completed' | 'cancelled';
 };
+
+export type UserProfile = {
+  uid: string;
+  email: string;
+  name: string;
+  userType: 'driver' | 'owner';
+};
