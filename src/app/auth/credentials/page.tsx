@@ -1,21 +1,26 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
-import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Form,
   FormControl,
@@ -24,23 +29,17 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Car, Building, ArrowLeft, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebase, useUser } from '@/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
+import { ArrowLeft, Building, Car, Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
 
 function CredentialsForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { auth, firestore } = useFirebase();
-  const { user, isUserLoading } = useUser();
 
   const userType = searchParams.get('type') || 'driver';
   const flow = searchParams.get('flow') || 'login';
@@ -48,27 +47,13 @@ function CredentialsForm() {
   const isLogin = flow === 'login';
   const isOwner = userType === 'owner';
 
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      getDoc(userDocRef).then((docSnap) => {
-        if (docSnap.exists()) {
-          const userProfile = docSnap.data() as UserProfile;
-          router.push(userProfile.userType === 'owner' ? '/dashboard' : '/');
-        } else {
-          router.push(isOwner ? '/dashboard' : '/');
-        }
-      });
-    }
-  }, [user, isUserLoading, router, isOwner, firestore]);
-
   const title = isLogin
     ? `${isOwner ? 'Owner' : 'Driver'} Login`
     : `Create ${isOwner ? 'an Owner' : 'a Driver'} Account`;
 
   const description = isLogin
-    ? `Welcome back! Please enter your credentials to continue.`
-    : `Join ParkSmart! Fill out the form below to get started.`;
+    ? 'Welcome back! Please enter your credentials to continue.'
+    : 'Join ParkSmart! Fill out the form below to get started.';
 
   const formSchema = z.object({
     name: isLogin
@@ -92,11 +77,23 @@ function CredentialsForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (isLogin) {
       try {
-        await signInWithEmailAndPassword(auth, values.email, values.password);
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          values.email,
+          values.password
+        );
         toast({
           title: 'Login Successful!',
           description: 'Redirecting...',
         });
+        const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          const userProfile = docSnap.data() as UserProfile;
+          router.push(userProfile.userType === 'owner' ? '/dashboard' : '/');
+        } else {
+          router.push(isOwner ? '/dashboard' : '/');
+        }
       } catch (error: any) {
         console.error('Login Error:', error);
         let description = 'Could not log in. Please try again.';
@@ -164,14 +161,6 @@ function CredentialsForm() {
     }
   }
 
-  if (isUserLoading && !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-16 w-16 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted">
       <Card className="w-full max-w-md m-4 bg-background">
@@ -183,7 +172,7 @@ function CredentialsForm() {
               ) : (
                 <Car className="mx-auto h-12 w-12 text-muted-foreground" />
               )}
-              <CardTitle className="text-2xl font-bold mt-4">
+              <CardTitle className="text-2xl font-bold mt-4 font-headline">
                 {title}
               </CardTitle>
               <CardDescription>{description}</CardDescription>

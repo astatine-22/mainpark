@@ -11,9 +11,7 @@ import { Card, CardContent } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronUp } from 'lucide-react';
-import { cn, getDistance } from '@/lib/utils';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 interface ParkingFinderProps {
   searchTerm: string;
@@ -21,22 +19,15 @@ interface ParkingFinderProps {
   onSearchHandled: () => void;
 }
 
-const SEARCH_RADIUS_KM = 5; // 5km radius for search
-
 function ParkingFinder({
   searchTerm,
   isNearbySearch,
   onSearchHandled,
 }: ParkingFinderProps) {
-  const { firestore } = useFirebase();
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
   const [userPosition, setUserPosition] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-  const [searchPosition, setSearchPosition] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
@@ -52,17 +43,73 @@ function ParkingFinder({
 
   const map = useMap();
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  
-  const parkingLotsQuery = useMemoFirebase(() => {
-    return collection(firestore, 'parking_lots');
-  }, [firestore]);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
 
-  const { data: parkingLotsFromFS, isLoading: isLoadingLots, error: lotsError } = useCollection<ParkingLot>(parkingLotsQuery);
+  const performSearch = (
+    location: google.maps.LatLng,
+    searchRadius: number
+  ) => {
+    if (!placesServiceRef.current) return;
+    setLoading(true);
+    setStatusMessage('Searching for parking...');
 
-  // Effect for initialization and initial search
+    const request: google.maps.places.PlaceSearchRequest = {
+      location,
+      radius: searchRadius,
+      keyword: 'pay parking',
+    };
+
+    placesServiceRef.current.nearbySearch(request, (results, status) => {
+      setLoading(false);
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        const lots: ParkingLot[] = results
+          .map((place) => {
+            if (
+              !place.geometry?.location ||
+              !place.name ||
+              !place.vicinity ||
+              !place.place_id
+            )
+              return null;
+            return {
+              id: place.place_id,
+              name: place.name,
+              address: place.vicinity,
+              position: {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+              },
+              rating: place.rating || 4.0,
+              totalSpots: Math.floor(Math.random() * 100) + 50,
+              availableSpots: Math.floor(Math.random() * 50),
+              pricePerHour: Math.floor(Math.random() * 50) + 50,
+              image: {
+                url:
+                  place.photos && place.photos.length > 0
+                    ? place.photos[0].getUrl({ maxWidth: 400, maxHeight: 300 })
+                    : `https://picsum.photos/seed/${place.place_id}/400/300`,
+                hint: 'parking garage',
+              },
+            };
+          })
+          .filter((lot): lot is ParkingLot => lot !== null);
+        setParkingLots(lots);
+        if (lots.length === 0) {
+          setStatusMessage('No parking found in this area.');
+        }
+      } else {
+        setParkingLots([]);
+        setStatusMessage('No parking found in this area.');
+        console.error(`Places service failed due to: ${status}`);
+      }
+    });
+  };
+
   useEffect(() => {
     if (!map) return;
     if (!geocoderRef.current) geocoderRef.current = new google.maps.Geocoder();
+    if (!placesServiceRef.current)
+      placesServiceRef.current = new google.maps.places.PlacesService(map);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -71,32 +118,25 @@ function ParkingFinder({
           lng: position.coords.longitude,
         };
         setUserPosition(newPosition);
-        if (!searchPosition) {
-          // Only set search position if it's the initial load
-          setSearchPosition(newPosition);
-          setMapCenter(newPosition);
-          setCurrentSearchTerm('your location');
-        }
+        setMapCenter(newPosition);
+        performSearch(new google.maps.LatLng(newPosition), 5000);
       },
       (err) => {
         console.warn(
           'Could not get user location. Falling back to default. Error:',
           err.message || 'Unknown reason'
         );
-        const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // India center
+        const defaultPosition = { lat: 28.6139, lng: 77.209 }; // Delhi center
         setUserPosition(null);
-        if (!searchPosition) {
-          setSearchPosition(defaultPosition);
-          setMapCenter(defaultPosition);
-          setStatusMessage('Could not get your location. Showing results for India.');
-          setCurrentSearchTerm('India');
-        }
+        setMapCenter(defaultPosition);
+        setStatusMessage('Could not get your location. Showing results for Delhi.');
+        setCurrentSearchTerm('Delhi');
+        performSearch(new google.maps.LatLng(defaultPosition), 5000);
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
-  }, [map, searchPosition]);
+  }, [map]);
 
-  // Effect to watch for live location updates for the blue dot
   useEffect(() => {
     const watchId = navigator.geolocation.watchPosition((position) => {
       setUserPosition({
@@ -110,38 +150,30 @@ function ParkingFinder({
     };
   }, []);
 
-  // Effect for handling manual text search
   useEffect(() => {
     if (searchTerm.trim() !== '' && geocoderRef.current) {
-      setLoading(true);
       setCurrentSearchTerm(searchTerm);
-      setStatusMessage(`Searching for parking near ${searchTerm}...`);
       geocoderRef.current.geocode({ address: searchTerm }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
           const location = results[0].geometry.location;
-          const newPosition = { lat: location.lat(), lng: location.lng() };
-          setSearchPosition(newPosition);
-          setMapCenter(newPosition);
+          setMapCenter({ lat: location.lat(), lng: location.lng() });
+          performSearch(location, 5000); // 5km search radius
         } else {
           console.error(
             `Geocode was not successful for the following reason: ${status}`
           );
-          setLoading(false);
           setStatusMessage(`Could not find location: ${searchTerm}`);
         }
       });
     }
   }, [searchTerm]);
 
-  // Effect for handling "Nearby" button click
   useEffect(() => {
     if (isNearbySearch) {
       if (userPosition) {
-        setLoading(true);
         setCurrentSearchTerm('your location');
-        setStatusMessage('Finding nearby parking...');
-        setSearchPosition(userPosition);
         setMapCenter(userPosition);
+        performSearch(new google.maps.LatLng(userPosition), 5000);
       } else {
         setStatusMessage(
           'Could not get your location. Please allow location access.'
@@ -151,40 +183,11 @@ function ParkingFinder({
     }
   }, [isNearbySearch, userPosition, onSearchHandled]);
 
-  // Effect to pan the map
   useEffect(() => {
     if (map && mapCenter) {
       map.panTo(mapCenter);
-      map.setZoom(14);
     }
   }, [map, mapCenter]);
-
-  // Effect to filter parking lots from Firestore
-  useEffect(() => {
-    setLoading(isLoadingLots);
-    if (isLoadingLots || !searchPosition || !parkingLotsFromFS) {
-      return;
-    }
-
-    const filteredAndSortedLots = parkingLotsFromFS
-      .map(lot => {
-        const lotPosition = { lat: lot.latitude, lng: lot.longitude };
-        const distance = getDistance(searchPosition, lotPosition);
-        return { ...lot, distance, position: lotPosition };
-      })
-      .filter(lot => lot.distance <= SEARCH_RADIUS_KM)
-      .sort((a, b) => a.distance - b.distance);
-
-    setParkingLots(filteredAndSortedLots);
-    
-    if (filteredAndSortedLots.length === 0) {
-      setStatusMessage(`No parking lots found within ${SEARCH_RADIUS_KM}km.`);
-    }
-
-    setLoading(false);
-
-  }, [searchPosition, parkingLotsFromFS, isLoadingLots]);
-
 
   const handleSelectLot = (lot: ParkingLot) => {
     setSelectedLot(lot);
@@ -246,6 +249,7 @@ function ParkingFinder({
                       onSelect={() => handleSelectLot(lot)}
                       onBook={() => handleOpenBooking(lot)}
                       isSelected={selectedLot?.id === lot.id}
+                      userPosition={userPosition}
                     />
                   ))}
                 </div>

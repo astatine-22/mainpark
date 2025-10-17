@@ -2,17 +2,15 @@ export type ParkingLot = {
   id: string;
   name: string;
   address: string;
-  latitude: number;
-  longitude: number;
-  googleRating: number;
+  position: { lat: number; lng: number };
+  rating: number;
   totalSpots: number;
   availableSpots: number;
-  hourlyRate: number;
-  photoUrls: string[];
-  managerId: string;
-  // Client-side computed properties
-  distance?: number;
-  position?: { lat: number; lng: number };
+  pricePerHour: number;
+  image: {
+    url: string;
+    hint: string;
+  };
 };
 
 // This type uses Firestore's Timestamp format for dates
