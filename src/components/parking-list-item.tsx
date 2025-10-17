@@ -28,7 +28,7 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected, use
     statusText = "Available";
   }
 
-  const distance = userPosition && lot.position ? getDistance(userPosition, lot.position) : null;
+  const distance = userPosition ? getDistance(userPosition, {lat: lot.latitude, lng: lot.longitude}) : null;
 
   return (
     <Card
@@ -40,15 +40,15 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected, use
     >
       <div className="relative h-28 w-full flex-shrink-0">
         <Image
-          src={lot.image.url}
+          src={lot.photoUrls[0]}
           alt={lot.name}
           fill
           className="rounded-t-lg object-cover"
-          data-ai-hint={lot.image.hint}
+          data-ai-hint="parking garage"
         />
          <div className="absolute top-2 right-2 flex items-center bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold">
             <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-400" />
-            {lot.rating.toFixed(1)}
+            {lot.googleRating.toFixed(1)}
         </div>
         {distance !== null && (
           <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold">
@@ -64,7 +64,7 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected, use
         <div className="space-y-2 mt-2">
             <div className="flex items-center justify-between">
                 <p className={cn("text-sm font-semibold", statusColor)}>{statusText}</p>
-                <p className="text-base font-semibold">Rs {lot.pricePerHour}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
+                <p className="text-base font-semibold">Rs {lot.hourlyRate}<span className="text-sm font-normal text-muted-foreground">/hr</span></p>
             </div>
             <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); onBook(); }}>
                 <Zap className="mr-2"/> Book Now
@@ -74,5 +74,3 @@ export default function ParkingListItem({ lot, onSelect, onBook, isSelected, use
     </Card>
   );
 }
-
-    

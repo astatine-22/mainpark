@@ -131,5 +131,3 @@ export function BookingSheet({ lot, isOpen, onOpenChange }: BookingSheetProps) {
     </Sheet>
   );
 }
-
-    

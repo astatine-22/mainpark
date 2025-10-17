@@ -13,6 +13,15 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import StatsCards from '@/components/dashboard/stats-cards';
 import OccupancyChart from '@/components/dashboard/occupancy-chart';
 import RecentBookings from '@/components/dashboard/recent-bookings';
@@ -22,13 +31,17 @@ import { collection, query, where } from 'firebase/firestore';
 import type { Booking, ParkingLot } from '@/lib/types';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2, PlusCircle } from 'lucide-react';
+import AddLotForm from '@/components/dashboard/add-lot-form';
+import { APIProvider } from '@vis.gl/react-google-maps';
+
 
 export default function DashboardPage() {
   const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const [isAddLotOpen, setIsAddLotOpen] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -68,13 +81,15 @@ export default function DashboardPage() {
     isLoading: isLoadingBookings,
     error: bookingsError,
   } = useCollection<Booking>(bookingsQuery);
-  
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   if (isUserLoading || isLoadingLots || isLoadingBookings) {
     return (
-       <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-16 w-16 animate-spin" />
       </div>
-    )
+    );
   }
 
   if (lotsError || bookingsError) {
@@ -87,14 +102,52 @@ export default function DashboardPage() {
     );
   }
 
+  if (!apiKey) {
+    return (
+      <div className="container py-10 text-center">
+        <p className="text-destructive">
+          Google Maps API Key is missing. Please set
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <Header showSearch={false} onSearchSubmit={() => {}} onNearbyClick={() => {}}/>
+    <APIProvider apiKey={apiKey} libraries={['geocoding']}>
+      <Header
+        showSearch={false}
+        onSearchSubmit={() => {}}
+        onNearbyClick={() => {}}
+      />
       <div className="container mx-auto py-10">
         <div className="space-y-4">
-          <h2 className="text-3xl font-bold tracking-tight font-headline">
-            Manager Dashboard
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold tracking-tight font-headline">
+              Manager Dashboard
+            </h2>
+            <Dialog open={isAddLotOpen} onOpenChange={setIsAddLotOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Lot
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Parking Lot</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below to add a new parking lot to your
+                    portfolio.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddLotForm
+                  managerId={user?.uid}
+                  onSuccess={() => setIsAddLotOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -102,7 +155,10 @@ export default function DashboardPage() {
               <TabsTrigger value="predictor">AI Predictor</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="space-y-4">
-              <StatsCards parkingLots={parkingLots || []} bookings={bookings || []} />
+              <StatsCards
+                parkingLots={parkingLots || []}
+                bookings={bookings || []}
+              />
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">
                   <CardHeader>
@@ -160,6 +216,6 @@ export default function DashboardPage() {
           </Tabs>
         </div>
       </div>
-    </>
+    </APIProvider>
   );
 }

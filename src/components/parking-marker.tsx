@@ -17,7 +17,7 @@ interface ParkingMarkerProps {
 export default function ParkingMarker({ lot, onClick, onBook, isSelected }: ParkingMarkerProps) {
   const [markerRef, marker] = useAdvancedMarkerRef();
 
-  if (!lot.position) return null;
+  const position = { lat: lot.latitude, lng: lot.longitude };
 
   const occupancy = lot.availableSpots / lot.totalSpots;
   let colorClass, markerBgClass;
@@ -37,7 +37,7 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
     <>
       <AdvancedMarker
         ref={markerRef}
-        position={lot.position}
+        position={position}
         onClick={onClick}
         title={lot.name}
       >
@@ -70,7 +70,7 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
                     </p>
                 </div>
                 <div className="flex justify-between gap-2 mt-3">
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => lot.position && window.open(`https://www.google.com/maps/dir/?api=1&destination=${lot.position.lat},${lot.position.lng}`, '_blank')}>
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${position.lat},${position.lng}`, '_blank')}>
                         <Navigation className="mr-2"/>
                         Navigate
                     </Button>
@@ -85,5 +85,3 @@ export default function ParkingMarker({ lot, onClick, onBook, isSelected }: Park
     </>
   );
 }
-
-    
