@@ -28,12 +28,12 @@ import { Car, Building, ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser } from '@/firebase';
 import {
-  initiateEmailSignUp,
   initiateEmailSignIn,
 } from '@/firebase/non-blocking-login';
 import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { UserProfile } from '@/lib/types';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
 
 function CredentialsForm() {
@@ -95,7 +95,7 @@ function CredentialsForm() {
       try {
         // This is a simplified approach. In a real app, you'd want to use Cloud Functions
         // to securely create the user document after the auth user is created.
-        const tempUserCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+        const tempUserCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         const user = tempUserCredential.user;
 
         if (user && values.name) {
@@ -113,7 +113,7 @@ function CredentialsForm() {
             description: 'You can now log in with your new account.',
           });
           // Log the user out so they can log in fresh
-          await auth.signOut();
+          await signOut(auth);
           router.push(`/auth/credentials?type=${userType}&flow=login`);
         }
       } catch (error: any) {
